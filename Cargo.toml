@@ -1,6 +1,9 @@
 [package]
 name = "bibleref"
+description = "Structures and functions for managing Bible references"
 version = "0.1.0"
 edition = "2021"
+keywords = ["bible"]
 
 [dependencies]
+serde = { version = "1.0.215", features = ["derive"] }
