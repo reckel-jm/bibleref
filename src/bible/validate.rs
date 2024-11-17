@@ -1194,3 +1194,14 @@ pub fn validate_book_chapter_verse(book: &BibleBook, chapter: &BibleChapter, ver
     else if book==&BibleBook::Revelation && *chapter==22 && *verse <= 21 { true }
     else { false }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_bibleverse_exists() {
+        assert!(validate_book_chapter_verse(&BibleBook::John, &3, &16));
+        assert!(!validate_book_chapter_verse(&BibleBook::Psalm, &1, &7))
+    }
+}
