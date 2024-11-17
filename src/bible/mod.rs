@@ -5,7 +5,7 @@ mod validate;
 use serde::{Serialize, Deserialize};
 use validate::validate_book_chapter_verse;
 
-/// This struct contains a Bible reference which is valid (can be found in a real Bible, consisting of a book, a chapter and a verse.
+/// This struct contains a Bible reference which is valid (can be found in a real Bible), consisting of a book, a chapter and a verse.
 /// Please note the following: There are some differences concerning the number of verses of certain chapters depending on some Bible versions, e.g. in English Bible translations, Psalms may have one verse more as in most German translations–because the introduction words at the beginning of some Psalms are counted as a seperate verse, while other translations might render them as the preface (or a verse 0). In this crate, we are always assuming the **maximum amount** of verses, so that all translations and versions can be used.
 /// In the new testament, the Textus Receptus is used as template for determining the numbers of chapters and vereses.
 /// Some books (like the book of Jude) may only have one Chapter. Normally, in human languages people would only quote the verse and leave the chapter out (e.g. Jude 13)–however, this will be parsed as Jude 1:13 technically.
@@ -17,7 +17,7 @@ pub struct BibleVerseReference {
 }
 
 impl BibleVerseReference {
-    /// Parses a given BibleBook, Chapter and Verse and returns an Option<BibleVerseReference> if BibleBook, Chapter and Verse are an existing Bible reference (can be found in the Bible). In any other case, None will be returned.
+    /// Parses a given BibleBook, Chapter and Verse and returns an `Option<BibleVerseReference>` if `BibleBook`, `Chapter` and `Verse` are an existing Bible reference (which can be found in the Bible). In any other case, None will be returned.
     pub fn parse(book: BibleBook, chapter: BibleChapter, verse: BibleVerse) -> Option<Self> {
         if validate_book_chapter_verse(&book, &chapter, &verse) {
             Some(BibleVerseReference {
@@ -124,6 +124,8 @@ impl BibleBook {
     /// - No parameter
     /// # Returns
     /// `true` if the book is part of the Old Testament, `false` if it is part of the New Testament.
+    /// # Note
+    /// This function is per definition the inverse of `is_new_testament`.
     pub fn is_old_testament(&self) -> bool {
         self < &BibleBook::Matthew
     }
@@ -134,7 +136,7 @@ impl BibleBook {
     /// # Returns
     /// `true` if the book is part of the New Testament, `false` if it is part of the Old Testament.
     /// # Note
-    //7 This function is per definition the inverse of `is_old_testament`.
+    /// This function is per definition the inverse of `is_old_testament`.
     pub fn is_new_testament(&self) -> bool {
         self >= &BibleBook::Matthew
     }
