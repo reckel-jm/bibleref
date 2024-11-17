@@ -10,7 +10,7 @@ use validate::validate_book_chapter_verse;
 /// In the new testament, the Textus Receptus is used as template for determining the numbers of chapters and vereses.
 /// Some books (like the book of Jude) may only have one Chapter. Normally, in human languages people would only quote the verse and leave the chapter out (e.g. Jude 13)–however, this will be parsed as Jude 1:13 technically.
 #[derive(PartialEq, Serialize, Deserialize, Debug)]
-struct BibleVerseReference {
+pub struct BibleVerseReference {
     book: BibleBook,
     chapter: BibleChapter,
     verse: BibleVerse,
@@ -49,7 +49,7 @@ impl BibleVerseReference {
 
 /// The struct BibleBook contains all books of the Bible in their order.
 #[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug, Copy, Clone)]
-enum BibleBook {
+pub enum BibleBook {
     Genesis,
     Exodus,
     Leviticus,
@@ -141,10 +141,10 @@ impl BibleBook {
 }
 
 /// An unsigned positive number which represents the chapter of a Bible reference
-type BibleChapter = u8;
+pub type BibleChapter = u8;
 
 /// An unsigned positive number which represents the verse of a Bible reference
-type BibleVerse = u8;
+pub type BibleVerse = u8;
 
 
 #[cfg(test)]
