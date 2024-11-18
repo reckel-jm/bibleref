@@ -1,9 +1,19 @@
 //! The Bible module includes the data structure around a Bible, including books, chapters and verses. 
 //! It also handles the parsing process which determins the validity of Bible references.
 
+/// Includes helper functions for the validation of Bible references.
 mod validate;
+
+/// Includes errors which might occur during validation, creation or manipulation of Bible references
+mod errors;
+
 use serde::{Serialize, Deserialize};
 use validate::validate_book_chapter_verse;
+
+pub struct BibleChapterReference {
+    book: BibleBook,
+    chapter: BibleChapter,
+}
 
 /// This struct contains a Bible reference which is valid (can be found in a real Bible), consisting of a book, a chapter and a verse.
 /// Please note the following: There are some differences concerning the number of verses of certain chapters depending on some Bible versions, e.g. in English Bible translations, Psalms may have one verse more as in most German translations–because the introduction words at the beginning of some Psalms are counted as a seperate verse, while other translations might render them as the preface (or a verse 0). In this crate, we are always assuming the **maximum amount** of verses, so that all translations and versions can be used.
@@ -18,15 +28,16 @@ pub struct BibleVerseReference {
 
 impl BibleVerseReference {
     /// Parses a given BibleBook, Chapter and Verse and returns an `Option<BibleVerseReference>` if `BibleBook`, `Chapter` and `Verse` are an existing Bible reference (which can be found in the Bible). In any other case, None will be returned.
-    pub fn parse(book: BibleBook, chapter: BibleChapter, verse: BibleVerse) -> Option<Self> {
-        if validate_book_chapter_verse(&book, &chapter, &verse) {
-            Some(BibleVerseReference {
-                book,
-                chapter,
-                verse,
-            })
-        } else {
-            None
+    pub fn parse(book: BibleBook, chapter: BibleChapter, verse: BibleVerse) -> Result<Self, errors::BibleReferenceValidationError> {
+        match validate_book_chapter_verse(&book, &chapter, &verse) {
+            Ok(_) => Ok(
+                BibleVerseReference {
+                    book,
+                    chapter,
+                    verse,
+                }
+            ),
+            Err(error) => Err(error)
         }
     }
     
@@ -168,13 +179,13 @@ mod tests {
             11,
             28
         );
-        assert!(bibleref.is_some());
+        assert!(bibleref.is_ok());
         
         let bibleref2 = BibleVerseReference::parse(
             BibleBook::Revelation,
             23,
             8
         );
-        assert!(bibleref2.is_none());
+        assert!(bibleref2.is_err());
     }
 }
