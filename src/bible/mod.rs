@@ -1,21 +1,74 @@
 //! The Bible module includes the data structure around a Bible, including books, chapters and verses. 
 //! It also handles the parsing process which determins the validity of Bible references.
+//!
+//! # General structure
+//! There exists several *types* of Bibel references:
+//! - A Reference to a Bible book [BibleBookReference] is defined by the concerned book only (as it is the highest layer).
+//! - A reference to a Bible chapter [BibleChapterReference] is defined by the concerned book *and* the chapter of the book.
+//! - A reference to a Bible verse [BibleVerseReference] is defined by the book, the chapter and the verse.
+//!
+//! [BibleChapterReference]s and [BibleVerseReference]s could be invalid if the chapter and verse don't exist in the Bible book. To prevent the creation of *invalid* references, the structs must be created via the `new` functions which return an [Result<BibleChapterReference, BibleReferenceValidationError>] or a [Result<BibleVerseReference, BibleReferenceValidationError>]. If the validation fails (the reference does not exist in the Bible), the [BibleReferenceValidationError::problem] field contains detailed information about the failure.
 
 /// Includes helper functions for the validation of Bible references.
-mod validate;
+pub mod validate;
 
 /// Includes errors which might occur during validation, creation or manipulation of Bible references
-mod errors;
+pub mod errors;
 
 use serde::{Serialize, Deserialize};
-use validate::validate_book_chapter_verse;
+use validate::*;
 
+use self::errors::BibleReferenceValidationError;
+
+/// This struct represents a valid Bible reference which consists of a book.
+#[derive(PartialEq, PartialOrd)]
+pub struct BibleBookReference {
+    book: BibleBook
+}
+
+impl BibleBookReference {
+    pub fn new(book: BibleBook) -> Self {
+        BibleBookReference { book }
+    }
+    
+    pub fn book(&self) -> BibleBook { self.book }
+}
+
+/// This struct represents a Bible reference which is valid (can be found in a real Bible), consisting of a book and a chapter.
+#[derive(PartialEq, PartialOrd)]
 pub struct BibleChapterReference {
     book: BibleBook,
     chapter: BibleChapter,
 }
 
+impl BibleChapterReference {
+    
+    /// Takes a given [BibleBook] and [BibleChapter] and returns an `Result<BibleVerseReference>`. If `BibleBook`, `Chapter` and `Verse` are an existing Bible reference (which can be found in the Bible), `Ok([BibleVerseReference])` will be returned. In any other case, a [BibleReferenceValidationError] will be returned.
+    pub fn new(book: BibleBook, chapter: BibleChapter) -> Result<Self, BibleReferenceValidationError> {
+        match validate_book_chapter(&book, &chapter) {
+            Ok(_) => Ok(
+                BibleChapterReference {
+                    book,
+                    chapter
+                }
+            ),
+            Err(err) => Err(err)
+        }
+    }
+    
+    /// Returns the book of the BibleChapterReference
+    pub fn book(&self) -> BibleBook {
+        self.book
+    }
+    
+    /// Returns the chapter of the BibleChapterReference    
+    pub fn chapter(&self) -> BibleChapter {
+        self.chapter
+    }
+}
+
 /// This struct contains a Bible reference which is valid (can be found in a real Bible), consisting of a book, a chapter and a verse.
+///
 /// Please note the following: There are some differences concerning the number of verses of certain chapters depending on some Bible versions, e.g. in English Bible translations, Psalms may have one verse more as in most German translations–because the introduction words at the beginning of some Psalms are counted as a seperate verse, while other translations might render them as the preface (or a verse 0). In this crate, we are always assuming the **maximum amount** of verses, so that all translations and versions can be used.
 /// In the new testament, the Textus Receptus is used as template for determining the numbers of chapters and vereses.
 /// Some books (like the book of Jude) may only have one Chapter. Normally, in human languages people would only quote the verse and leave the chapter out (e.g. Jude 13)–however, this will be parsed as Jude 1:13 technically.
@@ -27,8 +80,8 @@ pub struct BibleVerseReference {
 }
 
 impl BibleVerseReference {
-    /// Parses a given BibleBook, Chapter and Verse and returns an `Option<BibleVerseReference>` if `BibleBook`, `Chapter` and `Verse` are an existing Bible reference (which can be found in the Bible). In any other case, None will be returned.
-    pub fn parse(book: BibleBook, chapter: BibleChapter, verse: BibleVerse) -> Result<Self, errors::BibleReferenceValidationError> {
+    /// Takes a given BibleBook, Chapter and Verse and returns an `Result<BibleVerseReference>`. If `BibleBook`, `Chapter` and `Verse` are an existing Bible reference (which can be found in the Bible), `Ok(BibleVerseReference)` will be returned. In any other case, a [BibleReferenceValidationError] will be returned.
+    pub fn new(book: BibleBook, chapter: BibleChapter, verse: BibleVerse) -> Result<Self, errors::BibleReferenceValidationError> {
         match validate_book_chapter_verse(&book, &chapter, &verse) {
             Ok(_) => Ok(
                 BibleVerseReference {
@@ -173,19 +226,28 @@ mod tests {
     }
     
     #[test]
-    fn test_bibleversereference_parsing() {
-        let bibleref = BibleVerseReference::parse(
+    fn test_bibleversereference_creation() {
+        let bibleref = BibleVerseReference::new(
             BibleBook::Matthew,
             11,
             28
         );
         assert!(bibleref.is_ok());
         
-        let bibleref2 = BibleVerseReference::parse(
+        let bibleref = BibleVerseReference::new(
             BibleBook::Revelation,
             23,
             8
         );
-        assert!(bibleref2.is_err());
+        assert!(bibleref.is_err());
+    }
+    
+    #[test]
+    fn test_biblechapterreference_creation() {
+        let bibleref = BibleChapterReference::new(BibleBook::Genesis, 1);
+        assert!(bibleref.is_ok());
+        
+        let bibleref = BibleChapterReference::new(BibleBook::Ruth, 0);
+        assert!(bibleref.is_err());
     }
 }

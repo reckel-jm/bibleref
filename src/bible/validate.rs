@@ -16,6 +16,10 @@ pub fn validate_book_chapter(book: &BibleBook, chapter: &BibleChapter) -> Result
 }
 
 /// Returns the number of chapters of a given BibleBook
+/// # Params
+/// - book: The [BibleBook] as a reference (`&BibleBook`)
+/// # Returns
+/// A number which can be used as a BibleChapter
 pub fn get_number_of_chapters(book: &BibleBook) -> BibleChapter {
     match book {
         &BibleBook::Genesis => 50,
