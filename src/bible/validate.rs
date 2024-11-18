@@ -84,7 +84,6 @@ pub fn get_number_of_chapters(book: &BibleBook) -> BibleChapter {
         &BibleBook::IIIJohn => 1,
         &BibleBook::Jude => 1,
         &BibleBook::Revelation => 22,
-                
     }   
 }
 
