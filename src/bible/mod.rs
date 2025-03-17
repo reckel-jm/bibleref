@@ -4,10 +4,13 @@
 //! # General structure
 //! There exists several *types* of Bibel references:
 //! - A Reference to a Bible book [BibleBookReference] is defined by the concerned book only (as it is the highest layer).
-//! - A reference to a Bible chapter [BibleChapterReference] is defined by the concerned book *and* the chapter of the book.
-//! - A reference to a Bible verse [BibleVerseReference] is defined by the book, the chapter and the verse.
+//! - A Reference to a Bible chapter [BibleChapterReference] is defined by the concerned book *and* the chapter of the book.
+//! - A Reference to a Bible verse [BibleVerseReference] is defined by the book, the chapter and the verse.
 //!
 //! [BibleChapterReference]s and [BibleVerseReference]s could be invalid if the chapter and verse don't exist in the Bible book. To prevent the creation of *invalid* references, the structs must be created via the `new` functions which return an [Result<BibleChapterReference, BibleReferenceValidationError>] or a [Result<BibleVerseReference, BibleReferenceValidationError>]. If the validation fails (the reference does not exist in the Bible), the [BibleReferenceValidationError::problem] field contains detailed information about the failure.
+
+/// Includes data types for vectors of Bible references
+pub mod arrays;
 
 /// Includes helper functions for the validation of Bible references.
 pub mod validate;
@@ -21,7 +24,7 @@ use validate::*;
 use self::errors::BibleReferenceValidationError;
 
 /// This struct represents a valid Bible reference which consists of a book.
-#[derive(PartialEq, PartialOrd)]
+#[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug, Clone)]
 pub struct BibleBookReference {
     book: BibleBook
 }
@@ -35,7 +38,7 @@ impl BibleBookReference {
 }
 
 /// This struct represents a Bible reference which is valid (can be found in a real Bible), consisting of a book and a chapter.
-#[derive(PartialEq, PartialOrd)]
+#[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug, Clone)]
 pub struct BibleChapterReference {
     book: BibleBook,
     chapter: BibleChapter,
@@ -72,7 +75,7 @@ impl BibleChapterReference {
 /// Please note the following: There are some differences concerning the number of verses of certain chapters depending on some Bible versions, e.g. in English Bible translations, Psalms may have one verse more as in most German translations–because the introduction words at the beginning of some Psalms are counted as a seperate verse, while other translations might render them as the preface (or a verse 0). In this crate, we are always assuming the **maximum amount** of verses, so that all translations and versions can be used.
 /// In the new testament, the Textus Receptus is used as template for determining the numbers of chapters and vereses.
 /// Some books (like the book of Jude) may only have one Chapter. Normally, in human languages people would only quote the verse and leave the chapter out (e.g. Jude 13)–however, this will be parsed as Jude 1:13 technically.
-#[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug)]
+#[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug, Clone)]
 pub struct BibleVerseReference {
     book: BibleBook,
     chapter: BibleChapter,
@@ -109,6 +112,14 @@ impl BibleVerseReference {
         self.verse
     }
     
+}
+
+/// This enum represents *any* Bible reference (a book, a chapter or a verse)
+#[derive(PartialEq, PartialOrd, Deserialize, Debug, Clone)]
+pub enum BibleReference {
+    BibleBook(BibleBookReference),
+    BibleChapter(BibleChapterReference),
+    BibleVerse(BibleVerseReference)
 }
 
 /// The struct BibleBook contains all books of the Bible in their correct order. As it derives from `PartialOrd` and `PartialEq`, you can make comparisons like `<` or `>` to determine whether a book is before or after an other.
