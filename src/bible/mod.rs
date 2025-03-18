@@ -10,7 +10,7 @@
 //! [BibleChapterReference]s and [BibleVerseReference]s could be invalid if the chapter and verse don't exist in the Bible book. To prevent the creation of *invalid* references, the structs must be created via the `new` functions which return an [Result<BibleChapterReference, BibleReferenceValidationError>] or a [Result<BibleVerseReference, BibleReferenceValidationError>]. If the validation fails (the reference does not exist in the Bible), the [BibleReferenceValidationError::problem] field contains detailed information about the failure.
 
 /// Includes data types for vectors of Bible references
-pub mod arrays;
+pub mod lists;
 
 /// Includes helper functions for the validation of Bible references.
 pub mod validate;
