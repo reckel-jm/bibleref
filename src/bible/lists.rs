@@ -40,7 +40,7 @@ fn downcast_chapter_to_verses(bible_chapter: BibleChapterReference) -> BibleVers
             BibleVerseReference { 
                 book: bible_chapter.book(), 
                 chapter: bible_chapter.chapter(), 
-                verse: verse 
+                verse 
             }
         )
     }
