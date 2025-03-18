@@ -5,10 +5,13 @@ May it be used for the glory of God!
 
 ## Features
 
-The following features are allready implemented (checked box) or a planned to be implemented (unchecked box):
+The following features are allready implemented:
 
-[x] Structures for referencing Bible verses
-[x] Validation parsing (checks whether verse really exists)
-[ ] Validation parsing (checks whether chapter really exists)
-[ ] Parse reference from human languages
-[ ] Export reference to human languages
+- Structures for referencing Bible verses
+- Validation parsing (checks whether verse really exists)
+
+This is still going to be implemented:
+
+- Validation parsing (checks whether chapter really exists)
+- Parse reference from human languages
+- Export reference to human languages
