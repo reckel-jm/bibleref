@@ -123,7 +123,7 @@ pub enum BibleReference {
 }
 
 /// The struct BibleBook contains all books of the Bible in their correct order. As it derives from `PartialOrd` and `PartialEq`, you can make comparisons like `<` or `>` to determine whether a book is before or after an other.
-#[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug, Copy, Clone)]
+#[derive(PartialEq, PartialOrd, Eq, Serialize, Deserialize, Debug, Copy, Clone, Hash)]
 pub enum BibleBook {
     Genesis,
     Exodus,
