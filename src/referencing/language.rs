@@ -29,8 +29,11 @@ pub struct ReferenceLanguage {
     /// Short names (abbreviations) of each Bible book
     pub short_names: HashMap<BibleBook, Vec<String>>,
 
-    /// A list of delimeters splitting the chapter from the verse (most likely ',' or ':')
-    pub delimeters: Vec<String>
+    /// A list of delimiters splitting the chapter from the verse (most likely ',' or ':')
+    pub delimiter: Vec<String>,
+
+    /// Determines whether a simple space should be added between the book name and the chapter. This should be activated for all left-to-right lettered languages with Latin or Cyrillian alphabet, however it should be disabled for Asian languages such as Chinese, Japanese or Korean.
+    pub space_sepeeration: bool,
 }
 
 impl ReferenceLanguage {
@@ -46,7 +49,7 @@ impl ReferenceLanguage {
                 "{} {}{}{}",
                 self.long_names[&verse.book()].first().unwrap().to_string(),
                 verse.chapter(),
-                self.delimeters.first().unwrap(),
+                self.delimiter.first().unwrap(),
                 verse.verse()
             )
         }
@@ -199,7 +202,8 @@ pub fn get_english_reference_language() -> ReferenceLanguage {
         language_code: "en".to_string(),
         long_names,
         short_names,
-        delimeters: vec![":".to_string()]
+        delimiter: vec![":".to_string()],
+        space_sepeeration: true,
     }
 
 }
@@ -350,7 +354,8 @@ pub fn get_german_reference_language() -> ReferenceLanguage {
         language_code: "de".to_string(),
         long_names,
         short_names,
-        delimeters: vec![",".to_string(), ":".to_string()],
+        delimiter: vec![",".to_string(), ":".to_string()],
+        space_sepeeration: true,
     }
 }
 
@@ -501,7 +506,8 @@ pub fn get_chinese_simplified_reference_language() -> ReferenceLanguage {
         language_code: "zh_sim".to_string(),
         long_names,
         short_names,
-        delimeters: vec![":".to_string(), ",".to_string()],
+        delimiter: vec!["：".to_string()],
+        space_sepeeration: false,
     }
 }
 
@@ -652,7 +658,8 @@ pub fn get_chinese_traditional_reference_language() -> ReferenceLanguage {
         language_code: "zh_trad".to_string(),
         long_names,
         short_names,
-        delimeters: vec![":".to_string(), ",".to_string()],
+        delimiter: vec!["：".to_string()],
+        space_sepeeration: false,
     }
 }
 
@@ -802,7 +809,8 @@ pub fn get_french_reference_language() -> ReferenceLanguage {
         language_code: "fr".to_string(),
         long_names,
         short_names,
-        delimeters: vec![":".to_string(), ",".to_string()],
+        delimiter: vec![":".to_string(), ",".to_string()],
+        space_sepeeration: true,
     }
 }
 
