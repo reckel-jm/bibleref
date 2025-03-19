@@ -9,9 +9,8 @@ The following features are allready implemented:
 
 - Structures for referencing Bible verses
 - Validation parsing (checks whether verse really exists)
+- Export reference to human languages
 
 This is still going to be implemented:
 
-- Validation parsing (checks whether chapter really exists)
 - Parse reference from human languages
-- Export reference to human languages
