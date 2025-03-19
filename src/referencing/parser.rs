@@ -5,7 +5,6 @@ use crate::bible::{BibleBook, BibleBookReference, BibleChapterReference, BibleRe
 use super::language::{BookReferenceType, ReferenceLanguage, REFERENCE_LANGUAGES};
 
 
-
 pub fn get_reference_and_language(reference: String) -> Option<(BibleReference, String, BookReferenceType)> {
     if reference.is_empty() { return None; }
     
