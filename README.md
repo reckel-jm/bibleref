@@ -12,6 +12,10 @@ The following features are allready implemented:
 - Export reference to human languages
 - Parse reference from human languages
 
+## Documentation
+
+The crate is in itself [documentated](https://docs.rs/bibleref).
+
 ## Examples
 
 ### Translating Bible references into other languages
