@@ -37,17 +37,34 @@ pub struct ReferenceLanguage {
 }
 
 impl ReferenceLanguage {
-    pub fn create_reference(&self, bible_reference: BibleReference) -> String {
+    pub fn create_reference(&self, bible_reference: &BibleReference, long_version: bool) -> String {
         match bible_reference {
-            BibleReference::BibleBook(book) => self.long_names[&book.book()].first().unwrap().to_string(),
+            BibleReference::BibleBook(book) => match long_version {
+                true => self.long_names[&book.book()].first().unwrap().to_string(),
+                false => self.short_names[&book.book()].first().unwrap().to_string(),
+            }
             BibleReference::BibleChapter(chapter) => format!(
-                "{} {}",
-                self.long_names[&chapter.book()].first().unwrap().to_string(),
+                "{}{}{}",
+                match long_version {
+                    true => self.long_names[&chapter.book()].first().unwrap().to_string(),
+                    false => self.short_names[&chapter.book()].first().unwrap().to_string(),
+                },
+                match self.space_sepeeration {
+                    true => " ",
+                    false => ""
+                },
                 chapter.chapter()
             ),
             BibleReference::BibleVerse(verse) => format!(
-                "{} {}{}{}",
-                self.long_names[&verse.book()].first().unwrap().to_string(),
+                "{}{}{}{}{}",
+                match long_version {
+                    true => self.long_names[&verse.book()].first().unwrap().to_string(),
+                    false => self.short_names[&verse.book()].first().unwrap().to_string(),
+                },
+                match self.space_sepeeration {
+                    true => " ",
+                    false => ""
+                },
                 verse.chapter(),
                 self.delimiter.first().unwrap(),
                 verse.verse()
@@ -56,7 +73,27 @@ impl ReferenceLanguage {
     }
 }
 
-pub fn get_english_reference_language() -> ReferenceLanguage {
+/// This function creates a Bible reference in a human language.
+/// 
+/// # Params
+/// - `bible_reference`: The Bible reference from which the expression should be created
+/// - `language_code`: The language code of the human language in which the reference should be created
+/// 
+/// # Returns
+/// An [Option<String>] which is [Some(bible_reference_string)] if the language specified with the [language_code] exists
+/// or [None] if the language can't be found.
+pub fn get_reference_in_language(bible_reference: &BibleReference, language_code: &str, long_version: bool) -> Option<String> {
+    let language_code = language_code.trim().to_lowercase();
+    
+    for language in &*REFERENCE_LANGUAGES {
+        if language.language_code.to_lowercase().eq(&language_code) {
+            return Some(language.create_reference(bible_reference, long_version))
+        }
+    }
+    None
+}
+
+fn get_english_reference_language() -> ReferenceLanguage {
     let long_names_vec = vec![
         (BibleBook::Genesis, vec!["Genesis".to_string()]),
         (BibleBook::Exodus, vec!["Exodus".to_string()]),
@@ -208,7 +245,7 @@ pub fn get_english_reference_language() -> ReferenceLanguage {
 
 }
 
-pub fn get_german_reference_language() -> ReferenceLanguage {
+fn get_german_reference_language() -> ReferenceLanguage {
     let long_names_vec = vec![
         (BibleBook::Genesis, vec!["1. Mose".to_string(),"Genesis".to_string()]),
         (BibleBook::Exodus, vec!["2. Mose".to_string(),"Exodus".to_string()]),
@@ -360,7 +397,7 @@ pub fn get_german_reference_language() -> ReferenceLanguage {
 }
 
 
-pub fn get_chinese_simplified_reference_language() -> ReferenceLanguage {
+fn get_chinese_simplified_reference_language() -> ReferenceLanguage {
     let long_names_vec = vec![
         (BibleBook::Genesis, vec!["创世记".to_string()]),
         (BibleBook::Exodus, vec!["出埃及记".to_string()]),
@@ -512,7 +549,7 @@ pub fn get_chinese_simplified_reference_language() -> ReferenceLanguage {
 }
 
 
-pub fn get_chinese_traditional_reference_language() -> ReferenceLanguage {
+fn get_chinese_traditional_reference_language() -> ReferenceLanguage {
     let long_names_vec = vec![
         (BibleBook::Genesis, vec!["創世記".to_string()]),
         (BibleBook::Exodus, vec!["出埃及記".to_string()]),
@@ -663,7 +700,7 @@ pub fn get_chinese_traditional_reference_language() -> ReferenceLanguage {
     }
 }
 
-pub fn get_french_reference_language() -> ReferenceLanguage {
+fn get_french_reference_language() -> ReferenceLanguage {
     let long_names_vec = vec![
         (BibleBook::Genesis, vec!["Genèse".to_string()]),
         (BibleBook::Exodus, vec!["Exode".to_string()]),
@@ -814,3 +851,33 @@ pub fn get_french_reference_language() -> ReferenceLanguage {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::bible::BibleVerseReference;
+
+    use super::*;
+
+    #[test]
+    fn test_references_to_human_language() {
+        // Test John 3:16 in multiple languages
+        let reference1: BibleReference = BibleReference::BibleVerse(
+            BibleVerseReference::new(BibleBook::John, 3, 16).unwrap()
+        );
+        assert_eq!(
+            get_reference_in_language(&reference1, "en", true).unwrap(),
+            "John 3:16".to_string(),
+        );
+        assert_eq!(
+            get_reference_in_language(&reference1, "de", true).unwrap(),
+            "Johannes 3,16".to_string()
+        );
+        assert_eq!(
+            get_reference_in_language(&reference1, "de", false).unwrap(),
+            "Joh 3,16".to_string()
+        );
+        assert_eq!(
+            get_reference_in_language(&reference1, "zh_sim", true).unwrap(),
+            "约翰福音3：16".to_string()
+        )
+    }
+}
