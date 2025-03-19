@@ -20,6 +20,13 @@ use referencing::{language::get_reference_in_language, parser::get_reference_and
 /// An [Option<BibleReference>]
 /// - [Some<BibleReference>] if the BibleReference could be succesfuly parsed and is valid
 /// - [None] if parsing failed or the Bible reference is not valid.
+/// 
+/// # Example
+/// ```
+/// # use bibleref::parse_bible_reference;
+/// assert!(parse_bible_reference("Exodus 3".to_string()).is_some());
+/// assert!(parse_bible_reference("Revelation 24".to_string()).is_none());
+/// ```
 pub fn parse_bible_reference(bible_reference: String) -> Option<BibleReference> {
     match get_reference_and_language(bible_reference) {
         Some((bible_reference, _, _)) => Some(bible_reference),

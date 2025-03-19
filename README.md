@@ -10,7 +10,40 @@ The following features are allready implemented:
 - Structures for referencing Bible verses
 - Validation parsing (checks whether verse really exists)
 - Export reference to human languages
-
-This is still going to be implemented:
-
 - Parse reference from human languages
+
+## Examples
+
+### Translating Bible references into other languages
+
+The translation will only take place if the language is supported and the bible reference exists (can be found in the Bible).
+```rust
+use bibleref::translate_bible_reference;
+
+let german_reference: String = translate_bible_reference("Genesis 1:1".to_string(), "de".to_string()).unwrap();
+assert_eq!(german_reference, "1. Mose 1,1".to_string());
+let chinese_reference: String = translate_bible_reference("John 3:16".to_string(), "zh_sim".to_string()).unwrap();
+assert_eq!(chinese_reference, "约翰福音3：16".to_string());
+```
+
+### Check whether a Bible reference really exists
+```rust
+use bibleref::parse_bible_reference;
+assert!(parse_bible_reference("Exodus 3".to_string()).is_some()); // Exodus 3 exists in the Bible
+assert!(parse_bible_reference("Revelation 24".to_string()).is_none()); // Revelation 24 doesn't exist as the book only has 22 chapters
+```
+
+## Supported Languages
+
+The following languages have built-in support at the moment. You can add additional languages manually:
+
+| Language | Language Code |
+| -------- | ------------- |
+| English  | en            |
+| German   | de            |
+| Chinese (Simplified) | zh_sim |
+| Chinese (Traditional) | zh_trad |
+| Spanish | es |
+| French  | fr |
+| Ukrainian | uk |
+| Russian | ru |
