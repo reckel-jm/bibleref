@@ -2,3 +2,5 @@
 
 /// Structures for representing human languages
 pub mod language;
+
+pub mod parser;

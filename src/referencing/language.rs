@@ -47,17 +47,17 @@ pub struct ReferenceLanguage {
 }
 
 impl ReferenceLanguage {
-    pub fn create_reference(&self, bible_reference: &BibleReference, long_version: bool) -> String {
+    pub fn create_reference(&self, bible_reference: &BibleReference, book_reference_type: BookReferenceType) -> String {
         match bible_reference {
-            BibleReference::BibleBook(book) => match long_version {
-                true => self.long_names[&book.book()].first().unwrap().to_string(),
-                false => self.short_names[&book.book()].first().unwrap().to_string(),
+            BibleReference::BibleBook(book) => match book_reference_type {
+                BookReferenceType::Long => self.long_names[&book.book()].first().unwrap().to_string(),
+                BookReferenceType::Short => self.short_names[&book.book()].first().unwrap().to_string(),
             }
             BibleReference::BibleChapter(chapter) => format!(
                 "{}{}{}",
-                match long_version {
-                    true => self.long_names[&chapter.book()].first().unwrap().to_string(),
-                    false => self.short_names[&chapter.book()].first().unwrap().to_string(),
+                match book_reference_type {
+                    BookReferenceType::Long => self.long_names[&chapter.book()].first().unwrap().to_string(),
+                    BookReferenceType::Short => self.short_names[&chapter.book()].first().unwrap().to_string(),
                 },
                 match self.space_sepeeration {
                     true => " ",
@@ -67,9 +67,9 @@ impl ReferenceLanguage {
             ),
             BibleReference::BibleVerse(verse) => format!(
                 "{}{}{}{}{}",
-                match long_version {
-                    true => self.long_names[&verse.book()].first().unwrap().to_string(),
-                    false => self.short_names[&verse.book()].first().unwrap().to_string(),
+                match book_reference_type {
+                    BookReferenceType::Long => self.long_names[&verse.book()].first().unwrap().to_string(),
+                    BookReferenceType::Short => self.short_names[&verse.book()].first().unwrap().to_string(),
                 },
                 match self.space_sepeeration {
                     true => " ",
@@ -92,16 +92,26 @@ impl ReferenceLanguage {
 /// # Returns
 /// An [Option<String>] which is [Some(bible_reference_string)] if the language specified with the [language_code] exists
 /// or [None] if the language can't be found.
-pub fn get_reference_in_language(bible_reference: &BibleReference, language_code: &str, long_version: bool) -> Option<String> {
+pub fn get_reference_in_language(bible_reference: &BibleReference, language_code: &str, book_reference_type: BookReferenceType) -> Option<String> {
     let language_code = language_code.trim().to_lowercase();
     let reference_languages = &*REFERENCE_LANGUAGES.read().unwrap();
     
     for language in reference_languages {
         if language.language_code.to_lowercase().eq(&language_code) {
-            return Some(language.create_reference(bible_reference, long_version))
+            return Some(language.create_reference(bible_reference, book_reference_type))
         }
     }
     None
+}
+
+/// The type of a book reference in human language
+#[derive(Debug)]
+pub enum BookReferenceType {
+    /// Short versions like "Gen" or "Joh"
+    Short,
+
+    /// Long versions like "Genesis" or "John"
+    Long
 }
 
 fn get_english_reference_language() -> ReferenceLanguage {
@@ -875,19 +885,19 @@ mod tests {
             BibleVerseReference::new(BibleBook::John, 3, 16).unwrap()
         );
         assert_eq!(
-            get_reference_in_language(&reference1, "en", true).unwrap(),
+            get_reference_in_language(&reference1, "en", BookReferenceType::Long).unwrap(),
             "John 3:16".to_string(),
         );
         assert_eq!(
-            get_reference_in_language(&reference1, "de", true).unwrap(),
+            get_reference_in_language(&reference1, "de", BookReferenceType::Long).unwrap(),
             "Johannes 3,16".to_string()
         );
         assert_eq!(
-            get_reference_in_language(&reference1, "de", false).unwrap(),
+            get_reference_in_language(&reference1, "de", BookReferenceType::Short).unwrap(),
             "Joh 3,16".to_string()
         );
         assert_eq!(
-            get_reference_in_language(&reference1, "zh_sim", true).unwrap(),
+            get_reference_in_language(&reference1, "zh_sim", BookReferenceType::Long).unwrap(),
             "约翰福音3：16".to_string()
         )
     }
