@@ -1,17 +1,27 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::RwLock};
 use once_cell::sync::Lazy;
 
 use crate::bible::{BibleBook, BibleReference};
 
-// Static vector of ReferenceLanguage instances using Lazy
-pub static REFERENCE_LANGUAGES: Lazy<Vec<ReferenceLanguage>> = Lazy::new(|| {
-    vec![
+/// A static Read-Write-Lock vector of ReferenceLanguage instances using Lazy. Here, all the languages which are supported by default are loaded and saved in.
+/// As this is inside a [RwLock], it is possible to manipulate the languages during runtime.
+/// To obtain a mutable reference to the vector, use the `write` function of the RwLock:
+/// 
+/// ```ignore
+/// # use bibleref::referencing::language::REFERENCE_LANGUAGES;
+/// let mut languages = REFERENCE_LANGUAGES.write().unwrap();
+/// // Generate a language
+/// languages.push(your_defined_language);
+/// // Add a language or do anything else
+/// ```
+pub static REFERENCE_LANGUAGES: Lazy<RwLock<Vec<ReferenceLanguage>>> = Lazy::new(|| {
+    RwLock::new(vec![
         get_english_reference_language(),
         get_german_reference_language(),
         get_chinese_simplified_reference_language(),
         get_chinese_traditional_reference_language(),
         get_french_reference_language(),
-    ]
+    ])
 });
 
 /// A struct representing a human used language where Bible references can be reprsented.
@@ -84,8 +94,9 @@ impl ReferenceLanguage {
 /// or [None] if the language can't be found.
 pub fn get_reference_in_language(bible_reference: &BibleReference, language_code: &str, long_version: bool) -> Option<String> {
     let language_code = language_code.trim().to_lowercase();
+    let reference_languages = &*REFERENCE_LANGUAGES.read().unwrap();
     
-    for language in &*REFERENCE_LANGUAGES {
+    for language in reference_languages {
         if language.language_code.to_lowercase().eq(&language_code) {
             return Some(language.create_reference(bible_reference, long_version))
         }
