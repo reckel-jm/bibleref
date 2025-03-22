@@ -2,7 +2,7 @@
 //! It also handles the parsing process which determins the validity of Bible references.
 //!
 //! # General structure
-//! There exists several *types* of Bibel references:
+//! There exists several *types* of Bible references:
 //! - A Reference to a Bible book [BibleBookReference] is defined by the concerned book only (as it is the highest layer).
 //! - A Reference to a Bible chapter [BibleChapterReference] is defined by the concerned book *and* the chapter of the book.
 //! - A Reference to a Bible verse [BibleVerseReference] is defined by the book, the chapter and the verse.
@@ -72,8 +72,8 @@ impl BibleChapterReference {
 
 /// This struct contains a Bible reference which is valid (can be found in a real Bible), consisting of a book, a chapter and a verse.
 ///
-/// Please note the following: There are some differences concerning the number of verses of certain chapters depending on some Bible versions, e.g. in English Bible translations, Psalms may have one verse more as in most German translations–because the introduction words at the beginning of some Psalms are counted as a seperate verse, while other translations might render them as the preface (or a verse 0). In this crate, we are always assuming the **maximum amount** of verses, so that all translations and versions can be used.
-/// In the new testament, the Textus Receptus is used as template for determining the numbers of chapters and vereses.
+/// Please note the following: There are some differences concerning the number of verses of certain chapters depending on some Bible versions, e.g. in English Bible translations, Psalms may have one verse more as in most German translations–because the introduction words at the beginning of some Psalms are counted as a separate verse, while other translations might render them as the preface (or a verse 0). In this crate, we are always assuming the **maximum amount** of verses, so that all translations and versions can be used.
+/// In the new testament, the Textus Receptus is used as template for determining the numbers of chapters and verses.
 /// Some books (like the book of Jude) may only have one Chapter. Normally, in human languages people would only quote the verse and leave the chapter out (e.g. Jude 13)–however, this will be parsed as Jude 1:13 technically.
 #[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug, Clone)]
 pub struct BibleVerseReference {

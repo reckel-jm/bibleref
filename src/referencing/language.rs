@@ -1,3 +1,5 @@
+//! This module contains structures and implementations for parsing to and from real world languages.
+
 use std::{collections::HashMap, sync::RwLock};
 use once_cell::sync::Lazy;
 
