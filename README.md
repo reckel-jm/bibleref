@@ -1,11 +1,11 @@
 # A Rust Crate for managing Bible references, chapters and verses
 
-Bibleref is a leightweight Rust crate which supports the management of Bible references including parsing, validity checks and output. It is designed to simplify the usage of God's infaillible and Holy Word for computing purposes with the aim to simplify the spreading of the good news.
+Bibleref is a leightweight Rust crate which supports the management of Bible references including parsing, validity checks and output. It is designed to simplify the usage of God's infallible and Holy Word for computing purposes with the aim to simplify the spreading of the good news.
 May it be used for the glory of God!
 
 ## Features
 
-The following features are allready implemented:
+The following features are already implemented:
 
 - Structures for referencing Bible verses
 - Validation parsing (checks whether verse really exists)
@@ -14,7 +14,7 @@ The following features are allready implemented:
 
 ## Documentation
 
-The crate is in itself [documentated](https://docs.rs/bibleref).
+The crate is in itself [documented](https://docs.rs/bibleref).
 
 ## Examples
 
