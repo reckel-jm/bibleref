@@ -21,7 +21,7 @@ pub mod errors;
 use serde::{Serialize, Deserialize};
 use validate::*;
 
-use self::errors::BibleReferenceValidationError;
+use self::errors::*;
 
 /// This struct represents a valid Bible reference which consists of a book.
 #[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug, Clone)]
@@ -222,6 +222,94 @@ pub type BibleChapter = u8;
 
 /// An unsigned positive number which represents the verse of a Bible reference
 pub type BibleVerse = u8;
+
+/// TODO: Evaluate whether a general Bible reference would be better
+pub struct BibleRangeRerence {
+    book_start: BibleBook,
+    book_end: Option<BibleBook>,
+    chapter_start: Option<u8>,
+    chapter_end: Option<u8>,
+    verse_start: Option<u8>,
+    verse_end: Option<u8>,
+}
+
+impl BibleRangeRerence {
+    pub fn new(
+        book_start: BibleBook, 
+        book_end: Option<BibleBook>, 
+        chapter_start: Option<u8>, 
+        chapter_end: Option<u8>,
+        verse_start: Option<u8>,
+        verse_end: Option<u8>,
+        ) -> Result<Self, BibleRangeReferenceValidationError> {
+        let book_end: BibleBook = match book_end {
+            Some(book) => book,
+            None => book_start
+        };
+        
+        if book_end < book_start {
+            return Err(
+            BibleRangeReferenceValidationError::new(BibleRangeReferenceValidationProblem::BookStartAfterEnd)
+            )
+        }
+        
+        match (chapter_start, chapter_end) {
+            (None, None) => (),
+            (Some(start), Some(end)) => {
+                if start < end {
+                    return Err(
+                BibleRangeReferenceValidationError::new(
+                    BibleRangeReferenceValidationProblem::ChapterStartAfterEnd
+                    )
+            )
+                }
+            }
+            (Some(start), _) => {
+                let chapter_end = chapter_start;
+            }
+        }
+        
+        if bible_chapter_start > bible_chapter_end {
+            return Err(
+                BibleRangeReferenceValidationError::new(
+                    BibleRangeReferenceValidationProblem::StartBiggerThanEnd
+                    )
+            )
+        } 
+        
+        let start_reference = BibleChapterReference::new(bible_book, bible_chapter_start);
+        if start_reference.is_err() {
+            return Err(
+                BibleRangeReferenceValidationError::new(
+                    BibleRangeReferenceValidationProblem::ChapterStart(
+                        start_reference.err().unwrap().problem
+                    )
+                )   
+            )
+        }
+        
+        let end_reference = BibleChapterReference::new(bible_book, bible_chapter_end);
+        if end_reference.is_err() {
+            return Err(
+                BibleRangeReferenceValidationError::new(
+                    BibleRangeReferenceValidationProblem::ChapterEndProblem(
+                        end_reference.err().unwrap().problem
+                    )
+                )   
+            )
+        }
+        
+        Ok(BibleRangeRerence {
+            book_start: bible_book,
+            chapter_start: bible_chapter_start,
+            chapter_end: bible_chapter_end
+        })
+    }
+    
+    pub fn bible_book(&self) -> BibleBook {
+        self.book_start
+    }
+}
 
 
 #[cfg(test)]
