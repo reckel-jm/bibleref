@@ -39,7 +39,7 @@ pub struct ReferenceLanguage {
     /// The international language code (eg. en, de, zh_sim)
     pub language_code: String,
 
-    /// The long names of each Bible book represented as a `HashMap`. Each Bible book is assigned a [Vec<String>] which has to contain at least one String with the name of the Bible book in the language.
+    /// The long names of each Bible book represented as a `HashMap`. Each Bible book is assigned a [`Vec<String>`] which has to contain at least one String with the name of the Bible book in the language.
     /// If multible strings are provided, the first one will be used as default.
     pub long_names: HashMap<BibleBook, Vec<String>>,
 
@@ -97,7 +97,7 @@ impl ReferenceLanguage {
 /// - `language_code`: The language code of the human language in which the reference should be created
 /// 
 /// # Returns
-/// An [Option<String>] which is [Some(bible_reference_string)] if the language specified with the [language_code] exists
+/// An [`Option<String>`] which is [`Some(bible_reference_string)`] if the language specified with the `language_code` exists
 /// or [None] if the language can't be found.
 pub fn get_reference_in_language(bible_reference: &BibleReference, language_code: &str, book_reference_type: BookReferenceType) -> Result<String, LanguageDoesNotExistError> {
     let language_code = language_code.trim().to_lowercase();

@@ -63,7 +63,7 @@ impl BibleReferenceSearchResult {
 /// # Arguments
 /// - `reference`: A human readable Bible reference.
 /// # Returns
-/// - A result with either a [BibleReferenceSearchResult] or a [Box<dyn Error>] with an appropriate error message.
+/// - A result with either a [BibleReferenceSearchResult] or a [`Box<dyn Error>`] with an appropriate error message.
 /// # Example
 /// ```
 /// use bibleref::referencing::parser::{BibleReferenceSearchResult, get_reference_and_language};

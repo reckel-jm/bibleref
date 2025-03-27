@@ -2,6 +2,44 @@
 //!
 //! Bibleref is a lightweight Rust crate which supports the management of Bible references including parsing, validity checks and output. It is designed to simplify the usage of God's infallible and Holy Word for computing purposes with the aim to simplify the spreading of the good news.
 //! May it be used for the glory of God!
+//! 
+//! # Features
+//! - Provides internal structures for Bible references, books, chapters and verses
+//! - Parses Bible references in and from various languages
+//! - Translates Bible references into various languages
+//! - Validates Bible references
+//! - Gets the number of chapters and verses of a Bible book
+//!
+//! # Examples
+//! ## Does Genesis 4:5 exist?
+//! ```
+//! # use bibleref::parse_bible_reference;
+//! // Genesis 4:5 exists and is a valid Bible reference (of type BibleVerse)
+//! assert!(parse_bible_reference("Genesis 4:5".to_string()).is_ok());  
+//! ```
+//! 
+//! ## How about 出埃及记2:3 (Exodus 2:3 in Chinese)?
+//!  ```
+//! # use bibleref::parse_bible_reference;
+//! // 出埃及记2:3 exists and is a valid Bible reference (of type BibleVerse)
+//! assert!(parse_bible_reference("出埃及记2:3".to_string()).is_ok());  
+//! ```
+//! 
+//! ## Translate John 3:16 into German
+//! ```
+//! # use bibleref::translate_bible_reference;
+//! // The German translation of John 3:16 is "Johannes 3,16"
+//! let german_reference: String = translate_bible_reference("John 3:16".to_string(), "de".to_string()).unwrap();
+//! assert_eq!(german_reference, "Johannes 3,16".to_string());
+//! ```
+//! 
+//! ## Get the number of chapters in the book of Revelation
+//! ```
+//! # use bibleref::bible::validate::get_number_of_chapters;
+//! # use bibleref::bible::BibleBook;
+//! // The book of Revelation has 22 chapters
+//! assert_eq!(get_number_of_chapters(&BibleBook::Revelation), 22);
+//! ```
 
 pub mod bible;
 
@@ -13,13 +51,13 @@ use referencing::{language::get_reference_in_language, parser::get_reference_and
 use std::error::Error;
 use bible::BibleReference;
 
-/// Parses a given bible reference with all supported languages and returns an [Result<BibleReference, Box<dyn Error>>] depending on whether the parsing was successful.
+/// Parses a given bible reference with all supported languages and returns an [`Result<BibleReference, Box<dyn Error>>`] depending on whether the parsing was successful.
 /// # Params
 /// - `bible_reference`: the given bible reference as a string
 /// # Returns
-/// An [Result<BibleReference>]
-/// - [Some<BibleReference>] if the BibleReference could be successfully parsed and is valid
-/// - [Box<dyn Error>] if parsing failed or the Bible reference is not valid.
+/// A [`Result<BibleReference>`] with the following possible outcomes:
+/// - [`Some<BibleReference>`] if the BibleReference could be successfully parsed and is valid
+/// - [`Box<dyn Error>`] if parsing failed or the Bible reference is not valid.
 /// 
 /// # Example
 /// ```
@@ -50,9 +88,9 @@ pub fn parse_bible_reference(bible_reference: String) -> Result<BibleReference, 
 /// - `target_lang_code`: The language code of the target language (such as `de`, `en`, `zh_sim`)
 /// 
 /// # Returns
-/// A [Result<String, Box<dyn Error>>]
+/// A [`Result<String, Box<dyn Error>>`] with the following possible outcomes:
 /// - If the translation was successful, a String with the translated Bible reference will be returned.
-/// - If an error occurred, a [Box<dyn Error>] with the specific error will be returned.
+/// - If an error occurred, a [`Box<dyn Error>`] with the specific error will be returned.
 /// 
 /// # Example
 /// ```
