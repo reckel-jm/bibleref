@@ -116,7 +116,7 @@ pub fn get_reference_in_language(bible_reference: &BibleReference, language_code
 }
 
 /// The type of a book reference in human language
-#[derive(Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BookReferenceType {
     /// Short versions like "Gen" or "Joh"
     Short,

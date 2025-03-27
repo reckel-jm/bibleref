@@ -38,7 +38,7 @@ use bible::BibleReference;
 /// ```
 pub fn parse_bible_reference(bible_reference: String) -> Result<BibleReference, Box<dyn Error>> {
     match get_reference_and_language(bible_reference) {
-        Ok((bible_reference, _, _)) => Ok(bible_reference),
+        Ok(bible_reference_search_result) => Ok(bible_reference_search_result.bible_reference().clone()),
         Err(boxed_error) => Err(boxed_error)
     }
 }
@@ -71,8 +71,8 @@ pub fn parse_bible_reference(bible_reference: String) -> Result<BibleReference, 
 /// ```
 pub fn translate_bible_reference(bible_reference: String, target_lang_code: String) -> Result<String, Box<dyn Error>> {
     match get_reference_and_language(bible_reference) {
-        Ok((bible_reference, _, book_reference_type)) => {
-            match get_reference_in_language(&bible_reference, &target_lang_code, book_reference_type) {
+        Ok(bible_reference_search_result) => {
+            match get_reference_in_language(&bible_reference_search_result.bible_reference(), &target_lang_code, bible_reference_search_result.reference_type().clone()) {
                 Ok(translated_reference) => Ok(translated_reference),
                 Err(err) => Err(Box::new(err)),
             }
