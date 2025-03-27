@@ -3,10 +3,6 @@
 //! Bibleref is a lightweight Rust crate which supports the management of Bible references including parsing, validity checks and output. It is designed to simplify the usage of God's infallible and Holy Word for computing purposes with the aim to simplify the spreading of the good news.
 //! May it be used for the glory of God!
 
-use std::error::Error;
-
-use bible::BibleReference;
-
 pub mod bible;
 
 pub mod referencing;
@@ -14,14 +10,16 @@ pub mod referencing;
 pub mod errors;
 
 use referencing::{language::get_reference_in_language, parser::get_reference_and_language};
+use std::error::Error;
+use bible::BibleReference;
 
-/// Parses a given bible reference with all supported languages and returns an [Option<BibleReference>] depending on whether the parsing was succesful.
+/// Parses a given bible reference with all supported languages and returns an [Result<BibleReference, Box<dyn Error>>] depending on whether the parsing was successful.
 /// # Params
 /// - `bible_reference`: the given bible reference as a string
 /// # Returns
-/// An [Option<BibleReference>]
-/// - [Some<BibleReference>] if the BibleReference could be succesfuly parsed and is valid
-/// - [None] if parsing failed or the Bible reference is not valid.
+/// An [Result<BibleReference>]
+/// - [Some<BibleReference>] if the BibleReference could be successfully parsed and is valid
+/// - [Box<dyn Error>] if parsing failed or the Bible reference is not valid.
 /// 
 /// # Example
 /// ```
@@ -43,9 +41,9 @@ pub fn parse_bible_reference(bible_reference: String) -> Result<BibleReference, 
 /// - `target_lang_code`: The language code of the target language (such as `de`, `en`, `zh_sim`)
 /// 
 /// # Returns
-/// An [Option<String>]
-/// - If the translation was succesful, a String with the translated Bible reference will be returned.
-/// - If an error occured, None will be returned.
+/// A [Result<String, Box<dyn Error>>]
+/// - If the translation was successful, a String with the translated Bible reference will be returned.
+/// - If an error occurred, a [Box<dyn Error>] with the specific error will be returned.
 /// 
 /// # Example
 /// ```
