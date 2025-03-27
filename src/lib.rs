@@ -57,10 +57,17 @@ pub fn parse_bible_reference(bible_reference: String) -> Result<BibleReference, 
 /// # Example
 /// ```
 /// # use bibleref::translate_bible_reference;
+/// // The German translation of Genesis 1:1 is "1. Mose 1,1"
 /// let german_reference: String = translate_bible_reference("Genesis 1:1".to_string(), "de".to_string()).unwrap();
 /// assert_eq!(german_reference, "1. Mose 1,1".to_string());
+/// // The Chinese translation of John 3:16 is "约翰福音3：16"
 /// let chinese_reference: String = translate_bible_reference("John 3:16".to_string(), "zh_sim".to_string()).unwrap();
 /// assert_eq!(chinese_reference, "约翰福音3：16".to_string());
+/// // The translation of a non-existing Bible reference will throw an error
+/// assert!(translate_bible_reference("Exodus 72".to_string(), "de".to_string()).is_err());
+/// // You can also translate chapters of the Bible, the number of spaces will be ignored
+/// let german_chapter: String = translate_bible_reference("Matthew   19".to_string(), "de".to_string()).unwrap();
+/// assert_eq!(german_chapter, "Matthäus 19".to_string());
 /// ```
 pub fn translate_bible_reference(bible_reference: String, target_lang_code: String) -> Result<String, Box<dyn Error>> {
     match get_reference_and_language(bible_reference) {
