@@ -15,7 +15,7 @@ impl Display for BibleReferenceValidationError {
         write!(f, 
             "The Bible reference is invalid: {}",
             match self.problem {
-                BibleReferenceProblem::ChapterDoesNotExist => "The verse does not exist",
+                BibleReferenceProblem::ChapterDoesNotExist => "The chapter does not exist",
                 BibleReferenceProblem::VerseDoesNotExist => "The verse does not exist"
             }
         )

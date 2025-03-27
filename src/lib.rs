@@ -24,8 +24,17 @@ use bible::BibleReference;
 /// # Example
 /// ```
 /// # use bibleref::parse_bible_reference;
+/// # use bibleref::referencing::errors::ReferenceIsEmptyError;
+/// // Exodus 3 exists and is a valid Bible reference (of type BibleChapter)
 /// assert!(parse_bible_reference("Exodus 3".to_string()).is_ok());
+/// // The same applies with John 3,16
+/// assert!(parse_bible_reference("John 3,16".to_string()).is_ok());
+/// // Revelation 24 does not exist and (as the book only has 21 chapters) and therefore not a valid Bible reference
 /// assert!(parse_bible_reference("Revelation 24".to_string()).is_err());
+/// // You can display the error message as a string (in English)
+/// assert!(parse_bible_reference("Revelation 24".to_string()).err().unwrap().to_string().contains("The chapter does not exist"));
+/// // An empty string is not a valid Bible reference
+/// assert!(parse_bible_reference("".to_string()).err().unwrap().downcast_ref::<ReferenceIsEmptyError>().is_some());
 /// ```
 pub fn parse_bible_reference(bible_reference: String) -> Result<BibleReference, Box<dyn Error>> {
     match get_reference_and_language(bible_reference) {
