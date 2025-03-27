@@ -3,11 +3,15 @@
 //! Bibleref is a lightweight Rust crate which supports the management of Bible references including parsing, validity checks and output. It is designed to simplify the usage of God's infallible and Holy Word for computing purposes with the aim to simplify the spreading of the good news.
 //! May it be used for the glory of God!
 
+use std::error::Error;
+
 use bible::BibleReference;
 
 pub mod bible;
 
 pub mod referencing;
+
+pub mod errors;
 
 use referencing::{language::get_reference_in_language, parser::get_reference_and_language};
 
@@ -22,13 +26,13 @@ use referencing::{language::get_reference_in_language, parser::get_reference_and
 /// # Example
 /// ```
 /// # use bibleref::parse_bible_reference;
-/// assert!(parse_bible_reference("Exodus 3".to_string()).is_some());
-/// assert!(parse_bible_reference("Revelation 24".to_string()).is_none());
+/// assert!(parse_bible_reference("Exodus 3".to_string()).is_ok());
+/// assert!(parse_bible_reference("Revelation 24".to_string()).is_err());
 /// ```
-pub fn parse_bible_reference(bible_reference: String) -> Option<BibleReference> {
+pub fn parse_bible_reference(bible_reference: String) -> Result<BibleReference, Box<dyn Error>> {
     match get_reference_and_language(bible_reference) {
-        Some((bible_reference, _, _)) => Some(bible_reference),
-        None => None
+        Ok((bible_reference, _, _)) => Ok(bible_reference),
+        Err(boxed_error) => Err(boxed_error)
     }
 }
 
@@ -51,14 +55,14 @@ pub fn parse_bible_reference(bible_reference: String) -> Option<BibleReference> 
 /// let chinese_reference: String = translate_bible_reference("John 3:16".to_string(), "zh_sim".to_string()).unwrap();
 /// assert_eq!(chinese_reference, "约翰福音3：16".to_string());
 /// ```
-pub fn translate_bible_reference(bible_reference: String, target_lang_code: String) -> Option<String> {
+pub fn translate_bible_reference(bible_reference: String, target_lang_code: String) -> Result<String, Box<dyn Error>> {
     match get_reference_and_language(bible_reference) {
-        Some((bible_reference, _, book_reference_type)) => {
+        Ok((bible_reference, _, book_reference_type)) => {
             match get_reference_in_language(&bible_reference, &target_lang_code, book_reference_type) {
-                Some(translated_reference) => Some(translated_reference),
-                None => None,
+                Ok(translated_reference) => Ok(translated_reference),
+                Err(err) => Err(Box::new(err)),
             }
         }
-        None => None
+        Err(boxed_error) => Err(boxed_error)
     }
 }

@@ -1,12 +1,24 @@
 //! This module contains functions for parsing real language bible references into the crate's internal structures.
 
-use crate::bible::{BibleBook, BibleBookReference, BibleChapterReference, BibleReference, BibleVerseReference};
+use std::error::Error;
+
+use crate::{bible::{BibleBook, BibleBookReference, BibleChapterReference, BibleReference, BibleVerseReference}, referencing::errors::{BibleBookNotFoundError, ReferenceIsEmptyError}};
 
 use super::language::{BookReferenceType, ReferenceLanguage, REFERENCE_LANGUAGES};
 
-
-pub fn get_reference_and_language(reference: String) -> Option<(BibleReference, String, BookReferenceType)> {
-    if reference.is_empty() { return None; }
+/// Gets a (internal) Bible reference and the language code of a given human readable reference.
+/// Returns an error if parsing fails.
+/// 
+/// # Arguments
+/// - `reference`: A human readable Bible reference.
+/// # Returns
+/// - A tuple containing the internal Bible reference and the language code of the reference.
+/// # Errors
+/// - If the reference is empty, an error will be returned.
+/// - If the reference is not valid, an error will be returned.
+/// - If the reference is not found in any language, an error will be returned.
+pub fn get_reference_and_language(reference: String) -> Result<(BibleReference, String, BookReferenceType), Box<dyn Error>> {
+    if reference.is_empty() { return Err(Box::new(ReferenceIsEmptyError)) }
     
     enum ParserFlag {
         BookPart,
@@ -53,13 +65,19 @@ pub fn get_reference_and_language(reference: String) -> Option<(BibleReference, 
         }
     }
 
-    let book_finding = find_book_in_any_language(reference_book_str);
+    let book_finding = find_book_in_any_language(&reference_book_str);
 
     match book_finding {
-        None => return None,
+        None => return Err(
+            Box::new(
+                BibleBookNotFoundError {
+                    provided_bible_book_string: reference_book_str.clone()
+                }
+            )
+        ),
         Some((bible_book, language, book_reference_type)) => {
             match (reference_chapter_str.len(), reference_verse_str.len()) {
-                (0, 0) => return Some((
+                (0, 0) => return Ok((
                     BibleReference::BibleBook(BibleBookReference::new(bible_book)),
                     language,
                     book_reference_type
@@ -67,12 +85,12 @@ pub fn get_reference_and_language(reference: String) -> Option<(BibleReference, 
                 (0.., 0) => {
                     let chapter: u8 = reference_chapter_str.parse().unwrap();
                     match BibleChapterReference::new(bible_book, chapter) {
-                        Ok(chapter_reference) => return Some((
+                        Ok(chapter_reference) => return Ok((
                             BibleReference::BibleChapter(chapter_reference),
                             language.clone(),
                             book_reference_type
                         )),
-                        Err(err)  => return None
+                        Err(err)  => return Err(Box::new(err))
                     }
                 },
                 (0.., 0..) => {
@@ -80,26 +98,25 @@ pub fn get_reference_and_language(reference: String) -> Option<(BibleReference, 
                     let verse: u8 = reference_verse_str.parse().unwrap();
 
                     match BibleVerseReference::new(bible_book, chapter, verse) {
-                        Ok(verse_reference) => return Some((
+                        Ok(verse_reference) => return Ok((
                             BibleReference::BibleVerse(verse_reference),
                             language.clone(),
                             book_reference_type
                         )),
-                        Err(err) => return None
+                        Err(err) => return return Err(Box::new(err))
                     }
                 },
-                (_, _) => return None,
             }
         }
     }
 
 }
 
-fn find_book_in_any_language(book_name: String) -> Option<(BibleBook, String, BookReferenceType)> {
+fn find_book_in_any_language(book_name: &str) -> Option<(BibleBook, String, BookReferenceType)> {
     let languages = &*REFERENCE_LANGUAGES.read().unwrap();
 
     for language in languages {
-        let result = find_book_in_certain_language(book_name.clone(), language);
+        let result = find_book_in_certain_language(book_name, language);
         if result.is_some() {
             return result;
         }
@@ -108,15 +125,15 @@ fn find_book_in_any_language(book_name: String) -> Option<(BibleBook, String, Bo
     None
 }
 
-fn find_book_in_certain_language(book_name: String, language: &ReferenceLanguage) -> Option<(BibleBook, String, BookReferenceType)> {
+fn find_book_in_certain_language(book_name: &str, language: &ReferenceLanguage) -> Option<(BibleBook, String, BookReferenceType)> {
 
     for book in language.long_names.keys() {
         let language_long_space_removed: Vec<String> = language.long_names[book].iter().map(|str| str.replace(" ", "")).collect();
-        if language_long_space_removed.contains(&book_name) {
+        if language_long_space_removed.contains(&book_name.to_string()) {
             return Some((*book, language.language_code.clone(), BookReferenceType::Long))
         }
         let language_short_space_removed: Vec<String> = language.short_names[book].iter().map(|str| str.replace(" ", "")).collect();
-        if language_short_space_removed.contains(&book_name) {
+        if language_short_space_removed.contains(&book_name.to_string()) {
             return Some((*book, language.language_code.clone(), BookReferenceType::Short))
         }
     }
