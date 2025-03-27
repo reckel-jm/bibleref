@@ -12,11 +12,18 @@ use super::language::{BookReferenceType, ReferenceLanguage, REFERENCE_LANGUAGES}
 /// # Arguments
 /// - `reference`: A human readable Bible reference.
 /// # Returns
-/// - A tuple containing the internal Bible reference and the language code of the reference.
-/// # Errors
-/// - If the reference is empty, an error will be returned.
-/// - If the reference is not valid, an error will be returned.
-/// - If the reference is not found in any language, an error will be returned.
+/// - A result with either a tuple containing the internal Bible reference and the language code of the reference or a [Box<dyn Error>] with an appropriate error message.
+/// # Example
+/// ```
+/// use bibleref::referencing::parser::get_reference_and_language;
+/// use bibleref::referencing::language::BookReferenceType;
+/// use bibleref::bible::{BibleBook, BibleReference, BibleVerseReference};
+/// 
+/// let (reference, language, reference_type) = get_reference_and_language("1. Mose 1,3".to_string()).unwrap();
+/// assert_eq!(reference, BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 3).unwrap()));
+/// assert_eq!(language, "de");
+/// assert_eq!(reference_type, BookReferenceType::Long);
+/// ```
 pub fn get_reference_and_language(reference: String) -> Result<(BibleReference, String, BookReferenceType), Box<dyn Error>> {
     if reference.is_empty() { return Err(Box::new(ReferenceIsEmptyError)) }
     
