@@ -33,8 +33,8 @@ assert_eq!(chinese_reference, "约翰福音3：16".to_string());
 ### Check whether a Bible reference really exists
 ```rust
 use bibleref::parse_bible_reference;
-assert!(parse_bible_reference("Exodus 3".to_string()).is_some()); // Exodus 3 exists in the Bible
-assert!(parse_bible_reference("Revelation 24".to_string()).is_none()); // Revelation 24 doesn't exist as the book only has 22 chapters
+assert!(parse_bible_reference("Exodus 3".to_string()).is_ok()); // Exodus 3 exists in the Bible
+assert!(parse_bible_reference("Revelation 24".to_string()).is_err()); // Revelation 24 doesn't exist as the book only has 22 chapters
 ```
 
 ## Supported Languages

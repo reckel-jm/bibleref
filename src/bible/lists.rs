@@ -4,16 +4,16 @@ use super::{BibleReference, BibleBookReference, BibleChapterReference, BibleVers
 
 use super::validate::{get_number_of_chapters,get_number_of_verses};
 
-/// A [Vec<BibleBookReference>] which can be used to represent several Bible books
+/// A vector of [BibleBookReference]s which can be used to represent several Bible books
 pub type BibleBookList = Vec<BibleBookReference>;
 
-/// A [Vec<BibleChapterReference>] which can be used to represent several Bible chapters
+/// A vector of [BibleChapterReference]s which can be used to represent several Bible chapters
 pub type BibleChapterList = Vec<BibleChapterReference>;
 
-/// A [Vec<BibleVerseReference>] which can be used to represent several Bible verses
+/// A vector of [BibleVerseReference]s which can be used to represent several Bible verses
 pub type BibleVerseList = Vec<BibleVerseReference>;
 
-/// A [Vec<BibleReference>] which can be used to represent several Bible references (books, chapters and verses)
+/// A vector of [BibleReference]s which can be used to represent several Bible references (books, chapters and verses)
 pub type BibleReferenceList = Vec<BibleReference>;
 
 

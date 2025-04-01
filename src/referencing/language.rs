@@ -5,6 +5,8 @@ use once_cell::sync::Lazy;
 
 use crate::bible::{BibleBook, BibleReference};
 
+use super::errors::LanguageDoesNotExistError;
+
 /// A static Read-Write-Lock vector of ReferenceLanguage instances using Lazy. Here, all the languages which are supported by default are loaded and saved in.
 /// As this is inside a [RwLock], it is possible to manipulate the languages during runtime.
 /// To obtain a mutable reference to the vector, use the `write` function of the RwLock:
@@ -37,7 +39,7 @@ pub struct ReferenceLanguage {
     /// The international language code (eg. en, de, zh_sim)
     pub language_code: String,
 
-    /// The long names of each Bible book represented as a `HashMap`. Each Bible book is assigned a [Vec<String>] which has to contain at least one String with the name of the Bible book in the language.
+    /// The long names of each Bible book represented as a `HashMap`. Each Bible book is assigned a [`Vec<String>`] which has to contain at least one String with the name of the Bible book in the language.
     /// If multible strings are provided, the first one will be used as default.
     pub long_names: HashMap<BibleBook, Vec<String>>,
 
@@ -95,22 +97,26 @@ impl ReferenceLanguage {
 /// - `language_code`: The language code of the human language in which the reference should be created
 /// 
 /// # Returns
-/// An [Option<String>] which is [Some(bible_reference_string)] if the language specified with the [language_code] exists
+/// An [`Option<String>`] which is [`Some(bible_reference_string)`] if the language specified with the `language_code` exists
 /// or [None] if the language can't be found.
-pub fn get_reference_in_language(bible_reference: &BibleReference, language_code: &str, book_reference_type: BookReferenceType) -> Option<String> {
+pub fn get_reference_in_language(bible_reference: &BibleReference, language_code: &str, book_reference_type: BookReferenceType) -> Result<String, LanguageDoesNotExistError> {
     let language_code = language_code.trim().to_lowercase();
     let reference_languages = &*REFERENCE_LANGUAGES.read().unwrap();
     
     for language in reference_languages {
         if language.language_code.to_lowercase().eq(&language_code) {
-            return Some(language.create_reference(bible_reference, book_reference_type))
+            return Ok(language.create_reference(bible_reference, book_reference_type))
         }
     }
-    None
+    Err(
+        LanguageDoesNotExistError {
+            language_code
+        }
+    )
 }
 
 /// The type of a book reference in human language
-#[derive(Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum BookReferenceType {
     /// Short versions like "Gen" or "Joh"
     Short,
