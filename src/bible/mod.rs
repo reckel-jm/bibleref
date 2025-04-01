@@ -24,7 +24,7 @@ use validate::*;
 use self::errors::*;
 
 /// This struct represents a valid Bible reference which consists of a book.
-#[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize, Debug, Clone)]
 pub struct BibleBookReference {
     book: BibleBook
 }
@@ -38,7 +38,7 @@ impl BibleBookReference {
 }
 
 /// This struct represents a Bible reference which is valid (can be found in a real Bible), consisting of a book and a chapter.
-#[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize, Debug, Clone)]
 pub struct BibleChapterReference {
     book: BibleBook,
     chapter: BibleChapter,
@@ -75,7 +75,7 @@ impl BibleChapterReference {
 /// Please note the following: There are some differences concerning the number of verses of certain chapters depending on some Bible versions, e.g. in English Bible translations, Psalms may have one verse more as in most German translations–because the introduction words at the beginning of some Psalms are counted as a separate verse, while other translations might render them as the preface (or a verse 0). In this crate, we are always assuming the **maximum amount** of verses, so that all translations and versions can be used.
 /// In the new testament, the Textus Receptus is used as template for determining the numbers of chapters and verses.
 /// Some books (like the book of Jude) may only have one Chapter. Normally, in human languages people would only quote the verse and leave the chapter out (e.g. Jude 13)–however, this will be parsed as Jude 1:13 technically.
-#[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize, Debug, Clone)]
 pub struct BibleVerseReference {
     book: BibleBook,
     chapter: BibleChapter,
@@ -115,7 +115,7 @@ impl BibleVerseReference {
 }
 
 /// This enum represents *any* Bible reference (a book, a chapter or a verse)
-#[derive(PartialEq, PartialOrd, Deserialize, Debug, Clone)]
+#[derive(PartialEq, PartialOrd, Ord, Eq, Deserialize, Debug, Clone)]
 pub enum BibleReference {
     BibleBook(BibleBookReference),
     BibleChapter(BibleChapterReference),
@@ -123,7 +123,7 @@ pub enum BibleReference {
 }
 
 /// The struct BibleBook contains all books of the Bible in their correct order. As it derives from `PartialOrd` and `PartialEq`, you can make comparisons like `<` or `>` to determine whether a book is before or after an other.
-#[derive(PartialEq, PartialOrd, Eq, Serialize, Deserialize, Debug, Copy, Clone, Hash)]
+#[derive(PartialEq, PartialOrd, Eq, Ord, Serialize, Deserialize, Debug, Copy, Clone, Hash)]
 pub enum BibleBook {
     Genesis,
     Exodus,
@@ -223,93 +223,6 @@ pub type BibleChapter = u8;
 /// An unsigned positive number which represents the verse of a Bible reference
 pub type BibleVerse = u8;
 
-/// TODO: Evaluate whether a general Bible reference would be better
-pub struct BibleRangeRerence {
-    book_start: BibleBook,
-    book_end: Option<BibleBook>,
-    chapter_start: Option<u8>,
-    chapter_end: Option<u8>,
-    verse_start: Option<u8>,
-    verse_end: Option<u8>,
-}
-
-impl BibleRangeRerence {
-    pub fn new(
-        book_start: BibleBook, 
-        book_end: Option<BibleBook>, 
-        chapter_start: Option<u8>, 
-        chapter_end: Option<u8>,
-        verse_start: Option<u8>,
-        verse_end: Option<u8>,
-        ) -> Result<Self, BibleRangeReferenceValidationError> {
-        let book_end: BibleBook = match book_end {
-            Some(book) => book,
-            None => book_start
-        };
-        
-        if book_end < book_start {
-            return Err(
-            BibleRangeReferenceValidationError::new(BibleRangeReferenceValidationProblem::BookStartAfterEnd)
-            )
-        }
-        
-        match (chapter_start, chapter_end) {
-            (None, None) => (),
-            (Some(start), Some(end)) => {
-                if start < end {
-                    return Err(
-                BibleRangeReferenceValidationError::new(
-                    BibleRangeReferenceValidationProblem::ChapterStartAfterEnd
-                    )
-            )
-                }
-            }
-            (Some(start), _) => {
-                let chapter_end = chapter_start;
-            }
-        }
-        
-        if bible_chapter_start > bible_chapter_end {
-            return Err(
-                BibleRangeReferenceValidationError::new(
-                    BibleRangeReferenceValidationProblem::StartBiggerThanEnd
-                    )
-            )
-        } 
-        
-        let start_reference = BibleChapterReference::new(bible_book, bible_chapter_start);
-        if start_reference.is_err() {
-            return Err(
-                BibleRangeReferenceValidationError::new(
-                    BibleRangeReferenceValidationProblem::ChapterStart(
-                        start_reference.err().unwrap().problem
-                    )
-                )   
-            )
-        }
-        
-        let end_reference = BibleChapterReference::new(bible_book, bible_chapter_end);
-        if end_reference.is_err() {
-            return Err(
-                BibleRangeReferenceValidationError::new(
-                    BibleRangeReferenceValidationProblem::ChapterEndProblem(
-                        end_reference.err().unwrap().problem
-                    )
-                )   
-            )
-        }
-        
-        Ok(BibleRangeRerence {
-            book_start: bible_book,
-            chapter_start: bible_chapter_start,
-            chapter_end: bible_chapter_end
-        })
-    }
-    
-    pub fn bible_book(&self) -> BibleBook {
-        self.book_start
-    }
-}
 
 
 #[cfg(test)]
@@ -348,5 +261,17 @@ mod tests {
         
         let bibleref = BibleChapterReference::new(BibleBook::Ruth, 0);
         assert!(bibleref.is_err());
+    }
+
+    #[test]
+    fn test_comparisons() {
+        assert!(BibleBook::Genesis < BibleBook::Revelation);
+        assert!(BibleBook::Revelation > BibleBook::Genesis);
+        assert!(BibleBook::Genesis <= BibleBook::Genesis);
+        assert!(BibleBook::Genesis >= BibleBook::Genesis);
+        assert!(BibleBook::Genesis != BibleBook::Revelation);
+        assert!(BibleBook::Genesis == BibleBook::Genesis);
+
+        assert!(BibleVerseReference::new(BibleBook::Genesis, 1, 1).unwrap() < BibleVerseReference::new(BibleBook::Genesis, 1, 2).unwrap());
     }
 }
