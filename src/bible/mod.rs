@@ -193,6 +193,7 @@ pub enum BibleBook {
     Revelation    
 }
 
+
 impl BibleBook {
     /// This function determines whether the current Bible book is part of the Old Testament.
     /// # Parameters
@@ -215,6 +216,179 @@ impl BibleBook {
     pub fn is_new_testament(&self) -> bool {
         self >= &BibleBook::Matthew
     }
+
+    /// This function returns the number of the book which it has in the Bible
+    /// # Example
+    /// ```
+    /// use bibleref::bible::BibleBook;
+    /// assert_eq!(BibleBook::Genesis.number(), 1);
+    /// assert_eq!(BibleBook::Exodus.number(), 2);
+    /// assert_eq!(BibleBook::Leviticus.number(), 3);
+    /// assert_eq!(BibleBook::Numbers.number(), 4);
+    /// assert_eq!(BibleBook::Deuteronomy.number(), 5);
+    /// assert_eq!(BibleBook::Matthew.number(), 40);
+    /// ```
+    pub fn number(&self) -> u8 {
+        match self {
+            BibleBook::Genesis => 1,
+            BibleBook::Exodus => 2,
+            BibleBook::Leviticus => 3,
+            BibleBook::Numbers => 4,
+            BibleBook::Deuteronomy => 5,
+            BibleBook::Joshua => 6,
+            BibleBook::Judges => 7,
+            BibleBook::Ruth => 8,
+            BibleBook::ISamuel => 9,
+            BibleBook::IISamuel => 10,
+            BibleBook::IKings => 11,
+            BibleBook::IIKings => 12,
+            BibleBook::IChronicles => 13,
+            BibleBook::IIChronicles => 14,
+            BibleBook::Ezra => 15,
+            BibleBook::Nehemiah => 16,
+            BibleBook::Esther => 17,
+            BibleBook::Job => 18,
+            BibleBook::Psalm => 19,
+            BibleBook::Proverbs => 20,
+            BibleBook::Ecclesiastes => 21,
+            BibleBook::SongofSolomon => 22,
+            BibleBook::Isaiah => 23,
+            BibleBook::Jeremiah => 24,
+            BibleBook::Lamentations => 25,
+            BibleBook::Ezekiel => 26,
+            BibleBook::Daniel => 27,
+            BibleBook::Hosea => 28,
+            BibleBook::Joel => 29,
+            BibleBook::Amos => 30,
+            BibleBook::Obadiah => 31,
+            BibleBook::Jonah => 32,
+            BibleBook::Micah => 33,
+            BibleBook::Nahum => 34,
+            BibleBook::Habakkuk => 35,
+            BibleBook::Zephaniah => 36,
+            BibleBook::Haggai => 37,
+            BibleBook::Zechariah => 38,
+            BibleBook::Malachi => 39,
+            BibleBook::Matthew => 40,
+            BibleBook::Mark => 41,
+            BibleBook::Luke => 42,
+            BibleBook::John => 43,
+            BibleBook::Acts => 44,
+            BibleBook::Romans => 45,
+            BibleBook::ICorinthians => 46,
+            BibleBook::IICorinthians => 47,
+            BibleBook::Galatians => 48,
+            BibleBook::Ephesians => 49,
+            BibleBook::Philippians => 50,
+            BibleBook::Colossians => 51,
+            BibleBook::IThessalonians => 52,
+            BibleBook::IIThessalonians => 53,
+            BibleBook::ITimothy => 54,
+            BibleBook::IITimothy => 55,
+            BibleBook::Titus => 56,
+            BibleBook::Philemon => 57,
+            BibleBook::Hebrews => 58,
+            BibleBook::James => 59,
+            BibleBook::IPeter => 60,
+            BibleBook::IIPeter => 61,
+            BibleBook::IJohn => 62,
+            BibleBook::IIJohn => 63,
+            BibleBook::IIIJohn => 64,
+            BibleBook::Jude => 65,
+            BibleBook::Revelation => 66          
+        }
+    }
+}
+
+/// This function returns a Bible book by its number. The number is the number of the book in the Bible (1-66).
+/// # Parameters
+/// - `number`: The number of the book in the Bible (1-66)
+/// # Returns
+/// - an `Option<BibleBook>` which contains the book if it exists, or `None` if it does not exist.
+/// # Note
+/// This function is the inverse of `BibleBook::number()`.
+/// # Example
+/// ```
+/// use bibleref::bible::get_bible_book_by_number;
+/// use bibleref::bible::BibleBook;
+/// assert_eq!(get_bible_book_by_number(1), Some(BibleBook::Genesis));
+/// assert_eq!(get_bible_book_by_number(2), Some(BibleBook::Exodus));
+/// assert_eq!(get_bible_book_by_number(3), Some(BibleBook::Leviticus));
+/// assert_eq!(get_bible_book_by_number(4), Some(BibleBook::Numbers));
+/// assert_eq!(get_bible_book_by_number(5), Some(BibleBook::Deuteronomy));
+/// assert_eq!(get_bible_book_by_number(6), Some(BibleBook::Joshua));
+/// assert_eq!(get_bible_book_by_number(7), Some(BibleBook::Judges));
+/// ```
+pub fn get_bible_book_by_number(number: u8) -> Option<BibleBook> {
+    match number {
+        1 => Some(BibleBook::Genesis),
+        2 => Some(BibleBook::Exodus),
+        3 => Some(BibleBook::Leviticus),
+        4 => Some(BibleBook::Numbers),
+        5 => Some(BibleBook::Deuteronomy),
+        6 => Some(BibleBook::Joshua),
+        7 => Some(BibleBook::Judges),
+        8 => Some(BibleBook::Ruth),
+        9 => Some(BibleBook::ISamuel),
+        10 => Some(BibleBook::IISamuel),
+        11 => Some(BibleBook::IKings),
+        12 => Some(BibleBook::IIKings),
+        13 => Some(BibleBook::IChronicles),
+        14 => Some(BibleBook::IIChronicles),
+        15 => Some(BibleBook::Ezra),
+        16 => Some(BibleBook::Nehemiah),
+        17 => Some(BibleBook::Esther),
+        18 => Some(BibleBook::Job),
+        19 => Some(BibleBook::Psalm),
+        20 => Some(BibleBook::Proverbs),
+        21 => Some(BibleBook::Ecclesiastes),
+        22 => Some(BibleBook::SongofSolomon),
+        23 => Some(BibleBook::Isaiah),
+        24 => Some(BibleBook::Jeremiah),
+        25 => Some(BibleBook::Lamentations),
+        26 => Some(BibleBook::Ezekiel),
+        27 => Some(BibleBook::Daniel),
+        28 => Some(BibleBook::Hosea),
+        29 => Some(BibleBook::Joel),
+        30 => Some(BibleBook::Amos),
+        31 => Some(BibleBook::Obadiah),
+        32 => Some(BibleBook::Jonah),
+        33 => Some(BibleBook::Micah),
+        34 => Some(BibleBook::Nahum),
+        35 => Some(BibleBook::Habakkuk),
+        36 => Some(BibleBook::Zephaniah),
+        37 => Some(BibleBook::Haggai),
+        38 => Some(BibleBook::Zechariah),
+        39 => Some(BibleBook::Malachi),
+        40 => Some(BibleBook::Matthew),
+        41 => Some(BibleBook::Mark),
+        42 => Some(BibleBook::Luke),
+        43 => Some(BibleBook::John),
+        44 => Some(BibleBook::Acts),
+        45 => Some(BibleBook::Romans),
+        46 => Some(BibleBook::ICorinthians),
+        47 => Some(BibleBook::IICorinthians),
+        48 => Some(BibleBook::Galatians),
+        49 => Some(BibleBook::Ephesians),
+        50 => Some(BibleBook::Philippians),
+        51 => Some(BibleBook::Colossians),
+        52 => Some(BibleBook::IThessalonians),
+        53 => Some(BibleBook::IIThessalonians),
+        54 => Some(BibleBook::ITimothy),
+        55 => Some(BibleBook::IITimothy),
+        56 => Some(BibleBook::Titus),
+        57 => Some(BibleBook::Philemon),
+        58 => Some(BibleBook::Hebrews),
+        59 => Some(BibleBook::James),
+        60 => Some(BibleBook::IPeter),
+        61 => Some(BibleBook::IIPeter),
+        62 => Some(BibleBook::IJohn),
+        63 => Some(BibleBook::IIJohn),
+        64 => Some(BibleBook::IIIJohn),
+        65 => Some(BibleBook::Jude),
+        66 => Some(BibleBook::Revelation),
+        _ => None
+    }
 }
 
 /// An unsigned positive number which represents the chapter of a Bible reference
@@ -222,6 +396,141 @@ pub type BibleChapter = u8;
 
 /// An unsigned positive number which represents the verse of a Bible reference
 pub type BibleVerse = u8;
+
+/// # Ranges
+
+/// A Bible Book range reference is a range of Bible books, e.g. Genesis to Exodus. It is represented by two [BibleBook]s. The first book is the start of the range and the second book is the end of the range.
+pub struct BibleBookRangeReference {
+    start: BibleBookReference,
+    end: BibleBookReference
+}
+
+impl BibleBookRangeReference {
+    /// Creates a new BibleBookRangeReference with the given start and end books, if the start book is before the end book. If the start book is after the end book, an error will be returned.
+    /// # Parameters
+    /// - `start`: The start of the range
+    /// - `end`: The end of the range
+    pub fn new(start: BibleBookReference, end: BibleBookReference) -> Result<Self, errors::BibleReferenceValidationError> {
+        if start > end {
+            return Err(errors::BibleReferenceValidationError {
+                problem: errors::BibleReferenceProblem::StartReferenceAfterEndReference
+            });
+        }   
+        Ok(BibleBookRangeReference { start, end })
+    }
+
+    /// Returns the start of the range
+    pub fn start(&self) -> BibleBookReference {
+        self.start.clone()
+    }
+
+    /// Returns the end of the range
+    pub fn end(&self) -> BibleBookReference {
+        self.end.clone()
+    }
+
+    /// Returns the range as a [BibleBookList]
+    pub fn as_list(&self) -> lists::BibleBookList {
+        let mut books: lists::BibleBookList = vec![];
+        for i in self.start.book().number()..=self.end.book().number() {
+            books.push(
+                BibleBookReference::new(get_bible_book_by_number(i).unwrap())
+            );
+        }
+        books
+    }
+}
+
+/// A Bible Chapter range reference is a range of Bible chapters, e.g. Genesis 1 to Genesis 2. It is represented by two [BibleChapterReference]s. The first chapter is the start of the range and the second chapter is the end of the range.
+pub struct BibleChapterRangeReference {
+    start: BibleChapterReference,
+    end: BibleChapterReference
+}
+impl BibleChapterRangeReference {
+    /// Creates a new BibleChapterRangeReference with the given start and end chapters, if the start chapter is before the end chapter. If the start chapter is after the end chapter, an error will be returned.
+    /// # Parameters
+    /// - `start`: The start of the range
+    /// - `end`: The end of the range
+    pub fn new(start: BibleChapterReference, end: BibleChapterReference) -> Result<Self, errors::BibleReferenceValidationError> {
+        if start > end {
+            return Err(errors::BibleReferenceValidationError {
+                problem: errors::BibleReferenceProblem::StartReferenceAfterEndReference
+            });
+        }   
+        Ok(BibleChapterRangeReference { start, end })
+    }
+
+    /// Returns the start of the range
+    pub fn start(&self) -> BibleChapterReference {
+        self.start.clone()
+    }
+    /// Returns the end of the range
+    pub fn end(&self) -> BibleChapterReference {
+        self.end.clone()
+    }
+    /// Returns the range as a [BibleChapterList]
+    pub fn as_list(&self) -> lists::BibleChapterList {
+        let mut chapters: lists::BibleChapterList = vec![];
+        for i in self.start.chapter()..=self.end.chapter() {
+            chapters.push(
+                BibleChapterReference::new(
+                    self.start.book(),
+                    i
+                ).unwrap()
+            );
+        }
+        chapters
+    }
+}
+
+/// A Bible Verse range reference is a range of Bible verses, e.g. Genesis 1:1 to Genesis 1:2. It is represented by two [BibleVerseReference]s. The first verse is the start of the range and the second verse is the end of the range.
+pub struct BibleVerseRangeReference {
+    start: BibleVerseReference,
+    end: BibleVerseReference
+}
+impl BibleVerseRangeReference {
+    
+    /// Creates a new BibleVerseRangeReference with the given start and end verses, if the start verse is before the end verse. If the start verse is after the end verse, an error will be returned.
+    /// # Parameters
+    /// - `start`: The start of the range
+    /// - `end`: The end of the range
+    pub fn new(start: BibleVerseReference, end: BibleVerseReference) -> Result<Self, errors::BibleReferenceValidationError> {
+        if start > end {
+            return Err(errors::BibleReferenceValidationError {
+                problem: errors::BibleReferenceProblem::StartReferenceAfterEndReference
+            });
+        }   
+        Ok(BibleVerseRangeReference { start, end })
+    }
+
+    /// Returns the start of the range
+    pub fn start(&self) -> BibleVerseReference {
+        self.start.clone()
+    }
+    /// Returns the end of the range
+    pub fn end(&self) -> BibleVerseReference {
+        self.end.clone()
+    }
+
+    /// Returns the range as a [BibleVerseList]
+    /// # Note
+    /// This function will return all verses in the range, including the start and end verse.
+    pub fn as_list(&self) -> lists::BibleVerseList {
+        let mut verses: lists::BibleVerseList = vec![];
+        for i in self.start.verse()..=self.end.verse() {
+            verses.push(
+                BibleVerseReference::new(
+                    self.start.book(),
+                    self.start.chapter(),
+                    i
+                ).unwrap()
+            );
+        }
+        verses
+    }
+
+
+}
 
 
 #[cfg(test)]
