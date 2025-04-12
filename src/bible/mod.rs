@@ -118,23 +118,117 @@ impl BibleVerseReference {
 
 /// This enum represents all possible representations of one or multiple Bible references.
 /// It can be a reference to a book, a chapter or a verse. It can also be a range of books, chapters or verses or to a list of books, chapters or verses.
+#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
 pub enum BibleReferenceRepresentation {
     /// A single Bible reference
     Single(BibleReference),
 
     /// A range of Bible references
     Range(BibleRange),
-    
-    /// A list of Bible references
-    List(lists::BibleReferenceList)
 }
 
 /// This enum represents *any* single Bible reference (one book, one chapter or one verse)
-#[derive(PartialEq, Eq, PartialOrd, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Deserialize, Debug, Clone, Serialize)]
 pub enum BibleReference {
     BibleBook(BibleBookReference),
     BibleChapter(BibleChapterReference),
     BibleVerse(BibleVerseReference)
+}
+
+impl BibleReference {
+    /// Returns the next Bible reference of the current reference. If the current reference is a book, the next reference will be the first chapter of the next book. If the current reference is a chapter, the next reference will be the first verse of the next chapter. If the current reference is a verse, the next reference will be the next verse in the same chapter.
+    /// # Returns
+    /// - An Option with the next Bible reference as a [BibleReference] if it exists, or None if it does not exist.
+    pub fn next(&self) -> Option<BibleReference> {
+        match self {
+            BibleReference::BibleBook(book) => {
+                let next_book = get_bible_book_by_number(book.book.number() + 1);
+                match next_book {
+                    Some(next_book) => Some(BibleReference::BibleBook(BibleBookReference::new(next_book))),
+                    None => None
+                }
+            },
+            BibleReference::BibleChapter(chapter) => {
+                let next_chapter = chapter.chapter + 1;
+                match BibleChapterReference::new(chapter.book(), next_chapter) {
+                    Ok(next_chapter) => Some(BibleReference::BibleChapter(next_chapter)),
+                    Err(_) => {
+                        let next_book = get_bible_book_by_number(chapter.book().number() + 1);
+                        match next_book {
+                            Some(next_book) => Some(BibleReference::BibleBook(BibleBookReference::new(next_book))),
+                            None => None
+                        }
+                    }
+                }
+            },
+            BibleReference::BibleVerse(verse) => {
+                let next_verse = verse.verse + 1;
+                match BibleVerseReference::new(verse.book(), verse.chapter(), next_verse) {
+                    Ok(next_verse) => Some(BibleReference::BibleVerse(next_verse)),
+                    Err(_) => {
+                        let next_chapter = verse.chapter + 1;
+                        match BibleChapterReference::new(verse.book(), next_chapter) {
+                            Ok(next_chapter) => return Some(BibleReference::BibleChapter(next_chapter)),
+                            Err(_) => {
+                                let next_book = get_bible_book_by_number(verse.book().number() + 1);
+                                match next_book {
+                                    Some(next_book) => return Some(BibleReference::BibleBook(BibleBookReference::new(next_book))),
+                                    None => return None
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /// Returns the previous Bible reference of the current reference. If the current reference is a book, the previous reference will be the last chapter of the previous book. If the current reference is a chapter, the previous reference will be the last verse of the previous chapter. If the current reference is a verse, the previous reference will be the previous verse in the same chapter.
+    /// # Returns
+    /// - An Option with the previous Bible reference as a [BibleReference] if it exists, or None if it does not exist.
+    pub fn previous(&self) -> Option<BibleReference> {
+        match self {
+            BibleReference::BibleBook(book) => {
+                let previous_book = get_bible_book_by_number(book.book.number() - 1);
+                match previous_book {
+                    Some(previous_book) => Some(BibleReference::BibleBook(BibleBookReference::new(previous_book))),
+                    None => None
+                }
+            },
+            BibleReference::BibleChapter(chapter) => {
+                let previous_chapter = chapter.chapter - 1;
+                match BibleChapterReference::new(chapter.book(), previous_chapter) {
+                    Ok(previous_chapter) => Some(BibleReference::BibleChapter(previous_chapter)),
+                    Err(_) => {
+                        let previous_book = get_bible_book_by_number(chapter.book().number() - 1);
+                        match previous_book {
+                            Some(previous_book) => Some(BibleReference::BibleBook(BibleBookReference::new(previous_book))),
+                            None => None
+                        }
+                    }
+                }
+            },
+            BibleReference::BibleVerse(verse) => {
+                let previous_verse = verse.verse - 1;
+                match BibleVerseReference::new(verse.book(), verse.chapter(), previous_verse) {
+                    Ok(previous_verse) => Some(BibleReference::BibleVerse(previous_verse)),
+                    Err(_) => {
+                        let previous_chapter = verse.chapter - 1;
+                        match BibleChapterReference::new(verse.book(), previous_chapter) {
+                            Ok(previous_chapter) => return Some(BibleReference::BibleChapter(previous_chapter)),
+                            Err(_) => {
+                                let previous_book = get_bible_book_by_number(verse.book().number() - 1);
+                                match previous_book {
+                                    Some(previous_book) => return Some(BibleReference::BibleBook(BibleBookReference::new(previous_book))),
+                                    None => return None
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 impl Ord for BibleReference {
@@ -473,6 +567,7 @@ pub type BibleVerse = u8;
 /// # Ranges
 
 /// A Bible Book range is a range of Bible books, e.g. Genesis to Exodus. It is represented by two [BibleBook]s. The first book is the start of the range and the second book is the end of the range.
+#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
 pub struct BibleBookRange {
     start: BibleBookReference,
     end: BibleBookReference
@@ -515,6 +610,7 @@ impl BibleBookRange {
 }
 
 /// A Bible Chapter range is a range of Bible chapters, e.g. Genesis 1 to Genesis 2. It is represented by two [BibleChapterReference]s. The first chapter is the start of the range and the second chapter is the end of the range.
+#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
 pub struct BibleChapterRange {
     start: BibleChapterReference,
     end: BibleChapterReference
@@ -557,6 +653,7 @@ impl BibleChapterRange {
 }
 
 /// A Bible Verse range is a range of Bible verses, e.g. Genesis 1:1 to Genesis 1:2. It is represented by two [BibleVerseReference]s. The first verse is the start of the range and the second verse is the end of the range.
+#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
 pub struct BibleVerseRange {
     start: BibleVerseReference,
     end: BibleVerseReference
@@ -606,6 +703,7 @@ impl BibleVerseRange {
 }
 
 /// This enum represents a range of Bible references. It can be a range of books, chapters or verses.
+#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
 pub enum BibleRange {
     /// A range of Bible books
     BookRange(BibleBookRange),
@@ -703,6 +801,102 @@ impl BibleRange {
             BibleRange::VerseRange(range) => range.as_list().iter().map(|x| BibleReference::BibleVerse(x.clone())).collect()
         }
     }
+
+    pub fn end(&self) -> BibleReference {
+        match self {
+            BibleRange::BookRange(range) => BibleReference::BibleBook(range.end()),
+            BibleRange::ChapterRange(range) => BibleReference::BibleChapter(range.end()),
+            BibleRange::VerseRange(range) => BibleReference::BibleVerse(range.end())
+        }
+    }
+    pub fn start(&self) -> BibleReference {
+        match self {
+            BibleRange::BookRange(range) => BibleReference::BibleBook(range.start()),
+            BibleRange::ChapterRange(range) => BibleReference::BibleChapter(range.start()),
+            BibleRange::VerseRange(range) => BibleReference::BibleVerse(range.start())
+        }
+    }
+}
+
+/// This function takes a vector of [BibleReferenceRepresentation]s and aggregates them, 
+/// which means that it combines overlapping or adjacent ranges or references into one or multible range.
+/// It wil also remove duplicates and sort the references.
+/// # Parameters
+/// - `bible_representations`: A vector of [BibleReferenceRepresentation]s
+/// # Returns
+/// - A vector of [BibleReferenceRepresentation]s which contains the aggregated references.
+pub fn aggregate_bible_representations(
+    bible_representations: Vec<BibleReferenceRepresentation>
+) -> Vec<BibleReferenceRepresentation> {
+    let mut representations = bible_representations.clone();
+    
+    loop {       
+        let mut changes_done: bool = false;
+        
+        if representations.len() < 2 {
+            return representations;
+        }
+
+        representations.sort_unstable();
+        representations.dedup();
+
+        for i in 0..representations.len()-1 {
+            let j = i + 1;
+            if representations[i] == representations[j] {
+                continue;
+            }
+            match (&representations[i], &representations[j]) {
+                (BibleReferenceRepresentation::Single(a), BibleReferenceRepresentation::Single(b)) => {
+                    if a == b {
+                        continue;
+                    }
+                    let a_next = a.next();
+                    if a_next.is_some() && *b == a.next().unwrap() {
+                        let new_range = BibleRange::new(a.clone(), b.clone()).unwrap();
+                        representations.push(BibleReferenceRepresentation::Range(new_range));
+                        representations.remove(j);
+                        representations.remove(i);
+                        changes_done = true;
+                    };
+                },
+                (BibleReferenceRepresentation::Range(a), BibleReferenceRepresentation::Range(b)) => {
+                    if a == b {
+                        continue;
+                    }
+                    if a.end() > b.start() && b.end() > a.end() {
+                        let new_range = BibleRange::new(a.start(), b.end()).unwrap();
+                        representations.push(BibleReferenceRepresentation::Range(new_range));
+                        representations.remove(j);
+                        representations.remove(i);
+                        changes_done = true;
+                    }
+                },
+                (BibleReferenceRepresentation::Single(a), BibleReferenceRepresentation::Range(b)) => {
+                    if *a == b.start() {
+                        let new_range = BibleRange::new(a.clone(), b.end()).unwrap();
+                        representations.push(BibleReferenceRepresentation::Range(new_range));
+                        representations.remove(j);
+                        representations.remove(i);
+                        changes_done = true;
+                    }
+                },
+                (BibleReferenceRepresentation::Range(a), BibleReferenceRepresentation::Single(b)) => {
+                    if a.end() == *b {
+                        let new_range = BibleRange::new(a.start(), b.clone()).unwrap();
+                        representations.push(BibleReferenceRepresentation::Range(new_range));
+                        representations.remove(j);
+                        representations.remove(i);
+                        changes_done = true;
+                    }
+                }
+            }
+            
+        }
+
+        if !changes_done {
+            return representations;
+        }
+    }
 }
 
 #[cfg(test)]
@@ -741,5 +935,47 @@ mod tests {
         
         let bibleref = BibleChapterReference::new(BibleBook::Ruth, 0);
         assert!(bibleref.is_err());
+    }
+
+    #[test]
+    fn test_biblereference_ordering() {
+        let bibleref1 = BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 1).unwrap());
+        let bibleref2 = BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 2).unwrap());
+        assert!(bibleref1 < bibleref2);
+        
+        let bibleref3 = BibleReference::BibleChapter(BibleChapterReference::new(BibleBook::Genesis, 1).unwrap());
+        let bibleref4 = BibleReference::BibleChapter(BibleChapterReference::new(BibleBook::Genesis, 2).unwrap());
+        assert!(bibleref3 < bibleref4);
+
+        let bibleref5 = BibleReference::BibleBook(BibleBookReference::new(BibleBook::Genesis));
+        let bibleref6 = BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Exodus, 3, 4).unwrap());
+        assert!(bibleref5 < bibleref6);
+        assert!(bibleref6 > bibleref5);
+
+        let bibleref7 = BibleReference::BibleChapter(BibleChapterReference::new(BibleBook::John, 4).unwrap());
+        let bibleref8 = BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::John, 3, 16).unwrap());
+        assert!(bibleref7 < bibleref8);
+        assert!(bibleref8 > bibleref7);
+    }
+
+    #[test]
+    pub fn test_biblerepresentations_aggregation() {
+        let bibleref1 = BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 1).unwrap());
+        let bibleref2 = BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 2).unwrap());
+        let bibleref3 = BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 3).unwrap());
+
+        let biblerep1 = BibleReferenceRepresentation::Single(bibleref1.clone());
+        let biblerep2 = BibleReferenceRepresentation::Single(bibleref2.clone());
+        let biblerep3 = BibleReferenceRepresentation::Single(bibleref3.clone());
+
+        let biblereps = vec![
+            biblerep1,
+            biblerep2,
+            biblerep3
+        ];
+
+        let aggregated = aggregate_bible_representations(biblereps);
+        assert_eq!(aggregated.len(), 1);
+        assert_eq!(aggregated[0], BibleReferenceRepresentation::Range(BibleRange::new(bibleref1.clone(), bibleref3.clone()).unwrap()));
     }
 }
