@@ -18,13 +18,15 @@ pub mod validate;
 /// Includes errors which might occur during validation, creation or manipulation of Bible references
 pub mod errors;
 
+use std::cmp::Ordering;
+
 use serde::{Serialize, Deserialize};
 use validate::*;
 
 use self::errors::BibleReferenceValidationError;
 
 /// This struct represents a valid Bible reference which consists of a book.
-#[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
 pub struct BibleBookReference {
     book: BibleBook
 }
@@ -38,7 +40,7 @@ impl BibleBookReference {
 }
 
 /// This struct represents a Bible reference which is valid (can be found in a real Bible), consisting of a book and a chapter.
-#[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
 pub struct BibleChapterReference {
     book: BibleBook,
     chapter: BibleChapter,
@@ -75,7 +77,7 @@ impl BibleChapterReference {
 /// Please note the following: There are some differences concerning the number of verses of certain chapters depending on some Bible versions, e.g. in English Bible translations, Psalms may have one verse more as in most German translations–because the introduction words at the beginning of some Psalms are counted as a separate verse, while other translations might render them as the preface (or a verse 0). In this crate, we are always assuming the **maximum amount** of verses, so that all translations and versions can be used.
 /// In the new testament, the Textus Receptus is used as template for determining the numbers of chapters and verses.
 /// Some books (like the book of Jude) may only have one Chapter. Normally, in human languages people would only quote the verse and leave the chapter out (e.g. Jude 13)–however, this will be parsed as Jude 1:13 technically.
-#[derive(PartialEq, PartialOrd, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
 pub struct BibleVerseReference {
     book: BibleBook,
     chapter: BibleChapter,
@@ -114,12 +116,77 @@ impl BibleVerseReference {
     
 }
 
-/// This enum represents *any* Bible reference (a book, a chapter or a verse)
-#[derive(PartialEq, PartialOrd, Deserialize, Debug, Clone)]
+/// This enum represents all possible representations of one or multiple Bible references.
+/// It can be a reference to a book, a chapter or a verse. It can also be a range of books, chapters or verses or to a list of books, chapters or verses.
+pub enum BibleReferenceRepresentation {
+    /// A single Bible reference
+    Single(BibleReference),
+
+    /// A range of Bible references
+    Range(BibleRange),
+    
+    /// A list of Bible references
+    List(lists::BibleReferenceList)
+}
+
+/// This enum represents *any* single Bible reference (one book, one chapter or one verse)
+#[derive(PartialEq, Eq, PartialOrd, Deserialize, Debug, Clone)]
 pub enum BibleReference {
     BibleBook(BibleBookReference),
     BibleChapter(BibleChapterReference),
     BibleVerse(BibleVerseReference)
+}
+
+impl Ord for BibleReference {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (self, other) {
+            (BibleReference::BibleBook(a), BibleReference::BibleBook(b)) => a.cmp(b),
+            (BibleReference::BibleChapter(a), BibleReference::BibleChapter(b)) => a.cmp(b),
+            (BibleReference::BibleVerse(a), BibleReference::BibleVerse(b)) => a.cmp(b),
+            (BibleReference::BibleBook(a), BibleReference::BibleChapter(b)) => {
+                if a.book == b.book {
+                    Ordering::Less
+                } else {
+                    a.book().number().cmp(&b.book.number())
+                }
+            },
+            (BibleReference::BibleChapter(a), BibleReference::BibleBook(b)) => {
+                if a.book == b.book {
+                    Ordering::Greater
+                } else {
+                    a.book().number().cmp(&b.book.number())
+                }
+            },
+            (BibleReference::BibleBook(a), BibleReference::BibleVerse(b)) => {
+                if a.book == b.book {
+                    Ordering::Less
+                } else {
+                    a.book().number().cmp(&b.book.number())
+                }
+            },
+            (BibleReference::BibleVerse(a), BibleReference::BibleBook(b)) => {
+                if a.book == b.book {
+                    Ordering::Greater
+                } else {
+                    a.book().number().cmp(&b.book.number())
+                }
+            },
+            (BibleReference::BibleChapter(a), BibleReference::BibleVerse(b)) => {
+                if a.book == b.book && a.chapter == b.chapter {
+                    Ordering::Less
+                } else {
+                    a.book().number().cmp(&b.book.number())
+                }
+            },
+            (BibleReference::BibleVerse(a), BibleReference::BibleChapter(b)) => {
+                if a.book == b.book && a.chapter == b.chapter {
+                    Ordering::Greater
+                } else {
+                    a.book().number().cmp(&b.book.number())
+                }
+            }
+        }
+    }
 }
 
 /// The struct BibleBook contains all books of the Bible in their correct order. As it derives from `PartialOrd` and `PartialEq`, you can make comparisons like `<` or `>` to determine whether a book is before or after an other.
@@ -191,6 +258,12 @@ pub enum BibleBook {
     IIIJohn,
     Jude,
     Revelation    
+}
+
+impl Ord for BibleBook {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.number().cmp(&other.number())
+    }
 }
 
 
@@ -399,14 +472,14 @@ pub type BibleVerse = u8;
 
 /// # Ranges
 
-/// A Bible Book range reference is a range of Bible books, e.g. Genesis to Exodus. It is represented by two [BibleBook]s. The first book is the start of the range and the second book is the end of the range.
-pub struct BibleBookRangeReference {
+/// A Bible Book range is a range of Bible books, e.g. Genesis to Exodus. It is represented by two [BibleBook]s. The first book is the start of the range and the second book is the end of the range.
+pub struct BibleBookRange {
     start: BibleBookReference,
     end: BibleBookReference
 }
 
-impl BibleBookRangeReference {
-    /// Creates a new BibleBookRangeReference with the given start and end books, if the start book is before the end book. If the start book is after the end book, an error will be returned.
+impl BibleBookRange {
+    /// Creates a new BibleBookRange with the given start and end books, if the start book is before the end book. If the start book is after the end book, an error will be returned.
     /// # Parameters
     /// - `start`: The start of the range
     /// - `end`: The end of the range
@@ -416,7 +489,7 @@ impl BibleBookRangeReference {
                 problem: errors::BibleReferenceProblem::StartReferenceAfterEndReference
             });
         }   
-        Ok(BibleBookRangeReference { start, end })
+        Ok(BibleBookRange { start, end })
     }
 
     /// Returns the start of the range
@@ -441,13 +514,13 @@ impl BibleBookRangeReference {
     }
 }
 
-/// A Bible Chapter range reference is a range of Bible chapters, e.g. Genesis 1 to Genesis 2. It is represented by two [BibleChapterReference]s. The first chapter is the start of the range and the second chapter is the end of the range.
-pub struct BibleChapterRangeReference {
+/// A Bible Chapter range is a range of Bible chapters, e.g. Genesis 1 to Genesis 2. It is represented by two [BibleChapterReference]s. The first chapter is the start of the range and the second chapter is the end of the range.
+pub struct BibleChapterRange {
     start: BibleChapterReference,
     end: BibleChapterReference
 }
-impl BibleChapterRangeReference {
-    /// Creates a new BibleChapterRangeReference with the given start and end chapters, if the start chapter is before the end chapter. If the start chapter is after the end chapter, an error will be returned.
+impl BibleChapterRange {
+    /// Creates a new BibleChapterRange with the given start and end chapters, if the start chapter is before the end chapter. If the start chapter is after the end chapter, an error will be returned.
     /// # Parameters
     /// - `start`: The start of the range
     /// - `end`: The end of the range
@@ -457,7 +530,7 @@ impl BibleChapterRangeReference {
                 problem: errors::BibleReferenceProblem::StartReferenceAfterEndReference
             });
         }   
-        Ok(BibleChapterRangeReference { start, end })
+        Ok(BibleChapterRange { start, end })
     }
 
     /// Returns the start of the range
@@ -483,14 +556,14 @@ impl BibleChapterRangeReference {
     }
 }
 
-/// A Bible Verse range reference is a range of Bible verses, e.g. Genesis 1:1 to Genesis 1:2. It is represented by two [BibleVerseReference]s. The first verse is the start of the range and the second verse is the end of the range.
-pub struct BibleVerseRangeReference {
+/// A Bible Verse range is a range of Bible verses, e.g. Genesis 1:1 to Genesis 1:2. It is represented by two [BibleVerseReference]s. The first verse is the start of the range and the second verse is the end of the range.
+pub struct BibleVerseRange {
     start: BibleVerseReference,
     end: BibleVerseReference
 }
-impl BibleVerseRangeReference {
+impl BibleVerseRange {
     
-    /// Creates a new BibleVerseRangeReference with the given start and end verses, if the start verse is before the end verse. If the start verse is after the end verse, an error will be returned.
+    /// Creates a new [BibleVerseRange] with the given start and end verses, if the start verse is before the end verse. If the start verse is after the end verse, an error will be returned.
     /// # Parameters
     /// - `start`: The start of the range
     /// - `end`: The end of the range
@@ -500,7 +573,7 @@ impl BibleVerseRangeReference {
                 problem: errors::BibleReferenceProblem::StartReferenceAfterEndReference
             });
         }   
-        Ok(BibleVerseRangeReference { start, end })
+        Ok(BibleVerseRange { start, end })
     }
 
     /// Returns the start of the range
@@ -532,6 +605,105 @@ impl BibleVerseRangeReference {
 
 }
 
+/// This enum represents a range of Bible references. It can be a range of books, chapters or verses.
+pub enum BibleRange {
+    /// A range of Bible books
+    BookRange(BibleBookRange),
+
+    /// A range of Bible chapters
+    ChapterRange(BibleChapterRange),
+
+    /// A range of Bible verses
+    VerseRange(BibleVerseRange)
+}
+impl BibleRange {
+
+    pub fn new(start: BibleReference, end: BibleReference) -> Result<Self, errors::BibleReferenceValidationError> {
+        match (start, end) {
+            (BibleReference::BibleBook(start), BibleReference::BibleBook(end)) => {
+                match BibleBookRange::new(start, end) {
+                    Ok(range) => Ok(BibleRange::BookRange(range)),
+                    Err(err) => Err(err)
+                }
+            },
+            (BibleReference::BibleChapter(start), BibleReference::BibleChapter(end)) => {
+                match BibleChapterRange::new(start, end) {
+                    Ok(range) => Ok(BibleRange::ChapterRange(range)),
+                    Err(err) => Err(err)
+                }
+            },
+            (BibleReference::BibleVerse(start), BibleReference::BibleVerse(end)) => {
+                match BibleVerseRange::new(start, end) {
+                    Ok(range) => Ok(BibleRange::VerseRange(range)),
+                    Err(err) => Err(err)
+                }
+            },
+            (BibleReference::BibleBook(start), BibleReference::BibleChapter(end)) => {
+                match BibleChapterRange::new(
+                    BibleChapterReference::new(start.book(), 1).unwrap(),
+                    end
+                ) {
+                    Ok(range) => Ok(BibleRange::ChapterRange(range)),
+                    Err(err) => Err(err)
+                }
+            },
+            (BibleReference::BibleChapter(start), BibleReference::BibleBook(end)) => {
+                match BibleChapterRange::new(
+                    start,
+                    BibleChapterReference::new(end.book(), 1).unwrap()
+                ) {
+                    Ok(range) => Ok(BibleRange::ChapterRange(range)),
+                    Err(err) => Err(err)
+                }
+            },
+            (BibleReference::BibleBook(start), BibleReference::BibleVerse(end)) => {
+                match BibleVerseRange::new(
+                    BibleVerseReference::new(start.book(), 1, 1).unwrap(),
+                    end
+                ) {
+                    Ok(range) => Ok(BibleRange::VerseRange(range)),
+                    Err(err) => Err(err)
+                }
+            },
+            (BibleReference::BibleVerse(start), BibleReference::BibleBook(end)) => {
+                match BibleVerseRange::new(
+                    start,
+                    BibleVerseReference::new(end.book(), 1, 1).unwrap()
+                ) {
+                    Ok(range) => Ok(BibleRange::VerseRange(range)),
+                    Err(err) => Err(err)
+                }
+            },
+            (BibleReference::BibleChapter(start), BibleReference::BibleVerse(end)) => {
+                match BibleVerseRange::new(
+                    BibleVerseReference::new(start.book(), start.chapter(), 1).unwrap(),
+                    end
+                ) {
+                    Ok(range) => Ok(BibleRange::VerseRange(range)),
+                    Err(err) => Err(err)
+                }
+            },
+            (BibleReference::BibleVerse(start), BibleReference::BibleChapter(end)) => {
+                match BibleVerseRange::new(
+                    start,
+                    BibleVerseReference::new(end.book(), end.chapter(), 1).unwrap()
+                ) {
+                    Ok(range) => Ok(BibleRange::VerseRange(range)),
+                    Err(err) => Err(err)
+                }
+            },
+        }
+    }
+
+    /// Returns the range as a list (vector) of Bible references ([BibleReference]). The list will contain all references in the range, including the start and end reference.
+    pub fn as_list(&self) -> lists::BibleReferenceList {
+        match self {
+            BibleRange::BookRange(range) => range.as_list().iter().map(|x| BibleReference::BibleBook(x.clone())).collect(),
+            BibleRange::ChapterRange(range) => range.as_list().iter().map(|x| BibleReference::BibleChapter(x.clone())).collect(),
+            BibleRange::VerseRange(range) => range.as_list().iter().map(|x| BibleReference::BibleVerse(x.clone())).collect()
+        }
+    }
+}
 
 #[cfg(test)]
 mod tests {
