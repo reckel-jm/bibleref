@@ -118,13 +118,57 @@ impl BibleVerseReference {
 
 /// This enum represents all possible representations of one or multiple Bible references.
 /// It can be a reference to a book, a chapter or a verse. It can also be a range of books, chapters or verses or to a list of books, chapters or verses.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
 pub enum BibleReferenceRepresentation {
     /// A single Bible reference
     Single(BibleReference),
 
     /// A range of Bible references
     Range(BibleRange),
+}
+
+impl Ord for BibleReferenceRepresentation {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match (self, other) {
+            (BibleReferenceRepresentation::Single(a), BibleReferenceRepresentation::Single(b)) => a.cmp(b),
+            (BibleReferenceRepresentation::Range(a), BibleReferenceRepresentation::Range(b)) => a.cmp(b),
+
+            (BibleReferenceRepresentation::Single(a), BibleReferenceRepresentation::Range(b)) => match a {
+                BibleReference::BibleBook(a) => {
+                    let a_ref = BibleReference::BibleBook(a.clone());
+                    a_ref.cmp(&b.end())
+                },
+                BibleReference::BibleChapter(a) => {
+                    let a_ref = BibleReference::BibleChapter(a.clone());
+                    a_ref.cmp(&b.end())
+                },
+                BibleReference::BibleVerse(a) => {
+                    let a_ref = BibleReference::BibleVerse(a.clone());
+                    a_ref.cmp(&b.end())
+                }
+            }
+            (BibleReferenceRepresentation::Range(a), BibleReferenceRepresentation::Single(b)) => match b {
+                BibleReference::BibleBook(b) => {
+                    let b_ref = BibleReference::BibleBook(b.clone());
+                    a.end().cmp(&b_ref)
+                },
+                BibleReference::BibleChapter(b) => {
+                    let b_ref = BibleReference::BibleChapter(b.clone());
+                    a.end().cmp(&b_ref)
+                },
+                BibleReference::BibleVerse(b) => {
+                    let b_ref = BibleReference::BibleVerse(b.clone());
+                    a.end().cmp(&b_ref)
+                }
+            }
+        }
+    }
+}
+
+impl PartialOrd for BibleReferenceRepresentation {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
 }
 
 /// This enum represents *any* single Bible reference (one book, one chapter or one verse)
@@ -830,7 +874,7 @@ pub fn aggregate_bible_representations(
 ) -> Vec<BibleReferenceRepresentation> {
     let mut representations = bible_representations.clone();
     
-    loop {       
+    'outer: loop {       
         let mut changes_done: bool = false;
         
         if representations.len() < 2 {
@@ -842,6 +886,10 @@ pub fn aggregate_bible_representations(
 
         for i in 0..representations.len()-1 {
             let j = i + 1;
+            if representations.get(i) == None || representations.get(j) == None {
+                continue;
+            }
+
             if representations[i] == representations[j] {
                 continue;
             }
@@ -857,6 +905,7 @@ pub fn aggregate_bible_representations(
                         representations.remove(j);
                         representations.remove(i);
                         changes_done = true;
+                        continue 'outer;
                     };
                 },
                 (BibleReferenceRepresentation::Range(a), BibleReferenceRepresentation::Range(b)) => {
@@ -869,24 +918,27 @@ pub fn aggregate_bible_representations(
                         representations.remove(j);
                         representations.remove(i);
                         changes_done = true;
+                        continue 'outer;
                     }
                 },
                 (BibleReferenceRepresentation::Single(a), BibleReferenceRepresentation::Range(b)) => {
-                    if *a == b.start() {
+                    if a.next().is_some() && a.next().unwrap() == b.start() {
                         let new_range = BibleRange::new(a.clone(), b.end()).unwrap();
                         representations.push(BibleReferenceRepresentation::Range(new_range));
                         representations.remove(j);
                         representations.remove(i);
                         changes_done = true;
+                        continue 'outer;
                     }
                 },
                 (BibleReferenceRepresentation::Range(a), BibleReferenceRepresentation::Single(b)) => {
-                    if a.end() == *b {
+                    if a.end().next().is_some() && a.end().next().unwrap() == *b {
                         let new_range = BibleRange::new(a.start(), b.clone()).unwrap();
                         representations.push(BibleReferenceRepresentation::Range(new_range));
                         representations.remove(j);
                         representations.remove(i);
                         changes_done = true;
+                        continue 'outer;
                     }
                 }
             }
@@ -894,6 +946,8 @@ pub fn aggregate_bible_representations(
         }
 
         if !changes_done {
+            representations.sort_unstable();
+            representations.dedup();
             return representations;
         }
     }
@@ -938,6 +992,28 @@ mod tests {
     }
 
     #[test]
+    fn test_biblerefrepresentation_comp() {
+        let bibleref1 = BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 1).unwrap());
+        let bibleref2 = BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 2).unwrap());
+        let bibleref3 = BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 3).unwrap());
+
+        let biblerep1 = BibleReferenceRepresentation::Single(bibleref1.clone());
+        let biblerep2 = BibleReferenceRepresentation::Single(bibleref2.clone());
+        let biblerep3 = BibleReferenceRepresentation::Single(bibleref3.clone());
+
+        assert!(biblerep1 < biblerep2);
+        assert!(biblerep2 < biblerep3);
+        assert!(biblerep1 < biblerep3);
+
+        let biblerep4 = BibleReferenceRepresentation::Range(BibleRange::new(bibleref1.clone(), bibleref3.clone()).unwrap());
+        assert!(biblerep4 > biblerep1);
+        let biblerep5 = BibleReferenceRepresentation::Range(BibleRange::new(bibleref1.clone(), bibleref2.clone()).unwrap());
+        dbg!(&biblerep5);
+        dbg!(&biblerep3);
+        assert!(biblerep5 < biblerep3);
+    }
+
+    #[test]
     fn test_biblereference_ordering() {
         let bibleref1 = BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 1).unwrap());
         let bibleref2 = BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 2).unwrap());
@@ -975,6 +1051,7 @@ mod tests {
         ];
 
         let aggregated = aggregate_bible_representations(biblereps);
+        dbg!(&aggregated);
         assert_eq!(aggregated.len(), 1);
         assert_eq!(aggregated[0], BibleReferenceRepresentation::Range(BibleRange::new(bibleref1.clone(), bibleref3.clone()).unwrap()));
     }
