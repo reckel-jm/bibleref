@@ -3,7 +3,7 @@
 use std::{collections::HashMap, sync::RwLock};
 use once_cell::sync::Lazy;
 
-use crate::bible::{BibleBook, BibleReference};
+use crate::bible::{BibleBook, BibleRange, BibleReference};
 
 use super::errors::LanguageDoesNotExistError;
 
@@ -47,10 +47,13 @@ pub struct ReferenceLanguage {
     pub short_names: HashMap<BibleBook, Vec<String>>,
 
     /// A list of delimiters splitting the chapter from the verse (most likely ',' or ':')
-    pub delimiter: Vec<String>,
+    pub chapter_vers_delimiters: Vec<String>,
 
     /// Determines whether a simple space should be added between the book name and the chapter. This should be activated for all left-to-right lettered languages with Latin or Cyrillian alphabet, however it should be disabled for Asian languages such as Chinese, Japanese or Korean.
     pub space_separation: bool,
+
+    /// A string indicating a range (most likely '-')
+    pub range_delimiter: String,
 }
 
 impl ReferenceLanguage {
@@ -83,9 +86,72 @@ impl ReferenceLanguage {
                     false => ""
                 },
                 verse.chapter(),
-                self.delimiter.first().unwrap(),
+                self.chapter_vers_delimiters.first().unwrap(),
                 verse.verse()
             )
+        }
+    }
+
+    pub fn create_bible_range(&self, bible_range: &BibleRange, book_reference_type: BookReferenceType, shortened_string: bool) -> String {
+        match shortened_string {
+            true => self.create_bible_range_shortened(bible_range, book_reference_type),
+            false => self.create_bible_range_unshortened(bible_range, book_reference_type)
+        }
+    }
+
+    fn create_bible_range_unshortened(&self, bible_range: &BibleRange, book_reference_type: BookReferenceType) -> String {
+        let start = self.create_reference(&bible_range.start(), book_reference_type);
+        let end = self.create_reference(&bible_range.end(), book_reference_type);
+        format!("{}{}", start, end)
+    }
+
+    fn create_bible_range_shortened(&self, bible_range: &BibleRange, book_reference_type: BookReferenceType) -> String {
+        match bible_range {
+            BibleRange::BookRange(book_range) => {
+                if book_range.start() == book_range.end() {
+                    return self.create_reference(&BibleReference::BibleBook(book_range.start()), book_reference_type);
+                } else {
+                    self.create_bible_range_unshortened(bible_range, book_reference_type)
+                }
+            },
+            BibleRange::ChapterRange(chapter_range) => {
+                if chapter_range.start() == chapter_range.end() {
+                    return self.create_reference(&BibleReference::BibleChapter(chapter_range.start()), book_reference_type);
+                } else if chapter_range.start().book() == chapter_range.end().book() {
+                    return format!(
+                        "{}{}{}",
+                        self.create_reference(&BibleReference::BibleChapter(chapter_range.start()), book_reference_type),
+                        self.range_delimiter,
+                        chapter_range.end().chapter()
+                    );
+                } else {
+                    return self.create_bible_range_unshortened(bible_range, book_reference_type);
+                }
+            },
+            BibleRange::VerseRange(verse_range) => {
+                if verse_range.start() == verse_range.end() {
+                    return self.create_reference(&BibleReference::BibleVerse(verse_range.start()), book_reference_type);
+                } else if verse_range.start().book() == verse_range.end().book() && verse_range.start().chapter() == verse_range.end().chapter() {
+                    return format!(
+                        "{}{}{}",
+                        self.create_reference(&BibleReference::BibleVerse(verse_range.start()), book_reference_type),
+                        self.range_delimiter,
+                        verse_range.end().verse()
+                    );
+                } else if verse_range.start().book() == verse_range.end().book() {
+                    return format!(
+                        "{}{}{}{}{}",
+                        self.create_reference(&BibleReference::BibleVerse(verse_range.start()), book_reference_type),
+                        self.range_delimiter,
+                        verse_range.end().chapter(),
+                        self.chapter_vers_delimiters.first().unwrap(),
+                        verse_range.end().verse()
+                    );
+                } 
+                else {
+                    return self.create_bible_range_unshortened(bible_range, book_reference_type);
+                }
+            }
         }
     }
 }
@@ -106,6 +172,32 @@ pub fn get_reference_in_language(bible_reference: &BibleReference, language_code
     for language in reference_languages {
         if language.language_code.to_lowercase().eq(&language_code) {
             return Ok(language.create_reference(bible_reference, book_reference_type))
+        }
+    }
+    Err(
+        LanguageDoesNotExistError {
+            language_code
+        }
+    )
+}
+
+/// This function creates a Bible range in a human language.
+/// # Params
+/// - `bible_range`: The Bible range from which the expression should be created
+/// - `language_code`: The language code of the human language in which the range should be created
+/// - `book_reference_type`: The type of the book reference (short or long)
+/// - `shortened_string`: A boolean indicating whether the string should be shortened or not
+/// 
+/// # Returns
+/// An [`Option<String>`] which is [`Some(bible_range_string)`] if the language specified with the `language_code` exists
+/// or [None] if the language can't be found.
+pub fn get_range_in_language(bible_range: &BibleRange, language_code: &str, book_reference_type: BookReferenceType, shortened_string: bool) -> Result<String, LanguageDoesNotExistError> {
+    let language_code = language_code.trim().to_lowercase();
+    let reference_languages = &*REFERENCE_LANGUAGES.read().unwrap();
+    
+    for language in reference_languages {
+        if language.language_code.to_lowercase().eq(&language_code) {
+            return Ok(language.create_bible_range(bible_range, book_reference_type, shortened_string))
         }
     }
     Err(
@@ -271,8 +363,9 @@ fn get_english_reference_language() -> ReferenceLanguage {
         language_code: "en".to_string(),
         long_names,
         short_names,
-        delimiter: vec![":".to_string()],
+        chapter_vers_delimiters: vec![":".to_string()],
         space_separation: true,
+        range_delimiter: "-".to_string(),
     }
 
 }
@@ -423,8 +516,9 @@ fn get_german_reference_language() -> ReferenceLanguage {
         language_code: "de".to_string(),
         long_names,
         short_names,
-        delimiter: vec![",".to_string(), ":".to_string()],
+        chapter_vers_delimiters: vec![",".to_string(), ":".to_string()],
         space_separation: true,
+        range_delimiter: "-".to_string(),
     }
 }
 
@@ -575,8 +669,9 @@ fn get_chinese_simplified_reference_language() -> ReferenceLanguage {
         language_code: "zh_sim".to_string(),
         long_names,
         short_names,
-        delimiter: vec!["：".to_string()],
+        chapter_vers_delimiters: vec!["：".to_string()],
         space_separation: false,
+        range_delimiter: "-".to_string(),
     }
 }
 
@@ -727,8 +822,9 @@ fn get_chinese_traditional_reference_language() -> ReferenceLanguage {
         language_code: "zh_trad".to_string(),
         long_names,
         short_names,
-        delimiter: vec!["：".to_string()],
+        chapter_vers_delimiters: vec!["：".to_string()],
         space_separation: false,
+        range_delimiter: "-".to_string(),
     }
 }
 
@@ -878,8 +974,9 @@ fn get_french_reference_language() -> ReferenceLanguage {
         language_code: "fr".to_string(),
         long_names,
         short_names,
-        delimiter: vec![":".to_string(), ",".to_string()],
+        chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
         space_separation: true,
+        range_delimiter: "-".to_string(),
     }
 }
 
@@ -1030,8 +1127,9 @@ pub fn get_russian_reference_language() -> ReferenceLanguage {
         language_code: "ru".to_string(),
         long_names,
         short_names,
-        delimiter: vec![":".to_string(), ",".to_string()],
+        chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
         space_separation: true,
+        range_delimiter: "-".to_string(),
     }
 }
 
@@ -1181,8 +1279,9 @@ pub fn get_ukrainian_reference_language() -> ReferenceLanguage {
         language_code: "uk".to_string(),
         long_names,
         short_names,
-        delimiter: vec![":".to_string(), ",".to_string()],
+        chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
         space_separation: true,
+        range_delimiter: "-".to_string(),
     }
 }
 
@@ -1333,14 +1432,15 @@ pub fn get_spanish_reference_language() -> ReferenceLanguage {
         language_code: "es".to_string(),
         long_names,
         short_names,
-        delimiter: vec![":".to_string(), ",".to_string()],
-        space_separation: true
+        chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
+        space_separation: true,
+        range_delimiter: "-".to_string(),
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::bible::BibleVerseReference;
+    use crate::bible::{BibleChapterRange, BibleChapterReference, BibleVerseRange, BibleVerseReference};
 
     use super::*;
 
@@ -1366,5 +1466,60 @@ mod tests {
             get_reference_in_language(&reference1, "zh_sim", BookReferenceType::Long).unwrap(),
             "约翰福音3：16".to_string()
         )
+    }
+
+    #[test]
+    fn test_ranges_to_human_language() {
+        
+        // Test John 3:16-18 in multiple languages
+        let bible_range: BibleRange = BibleRange::VerseRange(BibleVerseRange::new(
+            BibleVerseReference::new(BibleBook::John, 3, 16).unwrap(),
+            BibleVerseReference::new(BibleBook::John, 3, 18).unwrap(),
+        ).unwrap());
+        assert_eq!(
+            get_range_in_language(&bible_range, "en", BookReferenceType::Long, true).unwrap(),
+            "John 3:16-18".to_string(),
+        );
+        assert_eq!(
+            get_range_in_language(&bible_range, "de", BookReferenceType::Long, true).unwrap(),
+            "Johannes 3,16-18".to_string()
+        );
+        assert_eq!(
+            get_range_in_language(&bible_range, "de", BookReferenceType::Short, true).unwrap(),
+            "Joh 3,16-18".to_string()
+        );
+
+        // Test Josua 3-7 in multiple languages
+        let bible_range: BibleRange = BibleRange::ChapterRange(BibleChapterRange::new(
+            BibleChapterReference::new(BibleBook::Joshua, 3).unwrap(),
+            BibleChapterReference::new(BibleBook::Joshua, 7).unwrap(),
+        ).unwrap());
+        assert_eq!(
+            get_range_in_language(&bible_range, "en", BookReferenceType::Long, true).unwrap(),
+            "Joshua 3-7".to_string(),
+        );
+        assert_eq!(
+            get_range_in_language(&bible_range, "de", BookReferenceType::Long, true).unwrap(),
+            "Josua 3-7".to_string()
+        );
+
+        // Test Matthew 1:1-2:12 in multiple languages
+        let bible_range: BibleRange = BibleRange::VerseRange(BibleVerseRange::new(
+            BibleVerseReference::new(BibleBook::Matthew, 1, 1).unwrap(),
+            BibleVerseReference::new(BibleBook::Matthew, 2, 12).unwrap(),
+        ).unwrap());
+        assert_eq!(
+            get_range_in_language(&bible_range, "en", BookReferenceType::Long, true).unwrap(),
+            "Matthew 1:1-2:12".to_string(),
+        );
+        assert_eq!(
+            get_range_in_language(&bible_range, "de", BookReferenceType::Long, true).unwrap(),
+            "Matthäus 1,1-2,12".to_string()
+        );
+        assert_eq!(
+            get_range_in_language(&bible_range, "de", BookReferenceType::Short, true).unwrap(),
+            "Mt 1,1-2,12".to_string()
+        );
+        
     }
 }
