@@ -264,7 +264,7 @@ pub fn parse_range(range_reference: String) -> Result<BibleReferenceRepresentati
     let mut current_part: String = "".to_string();
     let mut first_search_result_option: Option<BibleReferenceSearchResult> = None;
 
-    for (c) in reference.chars() {
+    for c in reference.chars() {
         
         current_part.push(c);
 
@@ -283,7 +283,11 @@ pub fn parse_range(range_reference: String) -> Result<BibleReferenceRepresentati
                     Ok(reference) => {
                         // We have found the first part of the range
                         let first_found_reference = reference.bible_reference().clone();
-                        match parse_second_range_part(&first_found_reference, language.chapter_vers_delimiters.first().unwrap(), parts[1].to_string()) {
+                        let chapter_vers_delimiter = match language.chapter_vers_delimiters.first() {
+                            Some(delimiter) => delimiter,
+                            None => return Err(Box::new(LanguageHasNoChapterVersDelimiterError { language_code: language.language_code.clone() }))
+                        };
+                        match parse_second_range_part(&first_found_reference, chapter_vers_delimiter, parts[1].to_string()) {
                             Ok(second_found_reference) => {
                                 // We have found the second part of the range
                                 let range = BibleRange::new(first_found_reference, second_found_reference).unwrap();
@@ -316,6 +320,17 @@ pub fn parse_range(range_reference: String) -> Result<BibleReferenceRepresentati
     Err(Box::new(BibleRangeParsingError::InvalidFirstPart))
 }
 
+/// Parses the second part of a range reference.
+/// The second part could be a complete reference or just a chapter or verse number (e.g. "1" or "1,3").
+/// # Arguments
+/// - `first_part`: The first part of the range reference.
+/// - `chapter_vers_delimiter`: The delimiter between the chapter and verse.
+/// - `part_string`: The second part of the range reference.
+/// # Returns
+/// - A result with either a [BibleReference] or a [`Box<dyn Error>`] with an appropriate error message.
+/// # Errors
+/// - [`BibleRangeParsingError::InvalidSecondPart`]: The second part of the range reference is invalid.
+/// - [`BibleRangeParsingError::NoSecondPartProvided`]: The second part of the range reference is empty.
 fn parse_second_range_part(first_part: &BibleReference, chapter_vers_delimiter: &str, part_string: String) -> Result<BibleReference, Box<dyn Error>> {
     match parse_bible_reference(part_string.clone()) {
         Ok(reference) => {
@@ -364,7 +379,7 @@ fn parse_second_range_part(first_part: &BibleReference, chapter_vers_delimiter: 
                             // We have a chapter reference, so we can create a new chapter reference
                             Ok(BibleReference::BibleChapter(BibleChapterReference::new(reference.book(), number).unwrap()))
                         },
-                        BibleReference::BibleBook(reference) => {
+                        BibleReference::BibleBook(_) => {
                             // We have a book reference, so we can create a new chapter reference
                             Err(Box::new(BibleRangeParsingError::InvalidSecondPart))
                         },
