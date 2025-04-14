@@ -54,6 +54,9 @@ pub struct ReferenceLanguage {
 
     /// A string indicating a range (most likely '-')
     pub range_delimiter: String,
+
+    /// A vector of strings used as delimiter between several Bible reference representations (most likely ';')
+    pub multiple_representations_delimiters: Vec<String>,
 }
 
 impl ReferenceLanguage {
@@ -366,6 +369,7 @@ fn get_english_reference_language() -> ReferenceLanguage {
         chapter_vers_delimiters: vec![":".to_string()],
         space_separation: true,
         range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec![";".to_string(), "and".to_string()],
     }
 
 }
@@ -519,6 +523,7 @@ fn get_german_reference_language() -> ReferenceLanguage {
         chapter_vers_delimiters: vec![",".to_string(), ":".to_string()],
         space_separation: true,
         range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec![";".to_string(), "und".to_string()]
     }
 }
 
@@ -672,6 +677,7 @@ fn get_chinese_simplified_reference_language() -> ReferenceLanguage {
         chapter_vers_delimiters: vec!["：".to_string()],
         space_separation: false,
         range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec!["；".to_string(), "和".to_string()]
     }
 }
 
@@ -825,6 +831,7 @@ fn get_chinese_traditional_reference_language() -> ReferenceLanguage {
         chapter_vers_delimiters: vec!["：".to_string()],
         space_separation: false,
         range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec!["；".to_string()]
     }
 }
 
@@ -977,6 +984,7 @@ fn get_french_reference_language() -> ReferenceLanguage {
         chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
         space_separation: true,
         range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec![";".to_string(), "et".to_string()]
     }
 }
 
@@ -1130,6 +1138,7 @@ pub fn get_russian_reference_language() -> ReferenceLanguage {
         chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
         space_separation: true,
         range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec![";".to_string(), "и".to_string()]
     }
 }
 
@@ -1282,6 +1291,7 @@ pub fn get_ukrainian_reference_language() -> ReferenceLanguage {
         chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
         space_separation: true,
         range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec![";".to_string(), "і".to_string()]
     }
 }
 
@@ -1435,6 +1445,7 @@ pub fn get_spanish_reference_language() -> ReferenceLanguage {
         chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
         space_separation: true,
         range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec![";".to_string(), "y".to_string()]
     }
 }
 
