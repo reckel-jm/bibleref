@@ -15,6 +15,16 @@ impl Display for LanguageDoesNotExistError {
 }
 impl Error for LanguageDoesNotExistError {}
 
+#[derive(Debug)]
+pub struct LanguageHasNoChapterVersDelimiterError {
+    pub language_code: String
+}
+impl Display for LanguageHasNoChapterVersDelimiterError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "The language with language code '{}' has no chapter/verse delimiter.", self.language_code)
+    }
+}
+impl Error for LanguageHasNoChapterVersDelimiterError {}
 
 #[derive(Debug)]
 pub struct ReferenceIsEmptyError;
@@ -38,3 +48,23 @@ impl std::fmt::Display for BibleBookNotFoundError {
     }
 }
 impl Error for BibleBookNotFoundError {}
+
+#[derive(Debug)]
+pub enum BibleRangeParsingError {
+    InvalidFirstPart,
+    InvalidSecondPart,
+    NoSecondPartProvided,
+    DelimiterNotFound,
+}
+impl Display for BibleRangeParsingError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BibleRangeParsingError::InvalidFirstPart => write!(f, "The first part of the Bible range is invalid."),
+            BibleRangeParsingError::InvalidSecondPart => write!(f, "The second part of the Bible range is invalid."),
+            BibleRangeParsingError::NoSecondPartProvided => write!(f, "The second part of the Bible range is missing."),
+            BibleRangeParsingError::DelimiterNotFound => write!(f, "The delimiter between the first and second part of the Bible range is missing."),
+        }
+    }
+}
+
+impl std::error::Error for BibleRangeParsingError { }

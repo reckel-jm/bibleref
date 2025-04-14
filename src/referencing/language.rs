@@ -32,6 +32,7 @@ pub static REFERENCE_LANGUAGES: Lazy<RwLock<Vec<ReferenceLanguage>>> = Lazy::new
 });
 
 /// A struct representing a human used language where Bible references can be reprsented.
+#[derive(Clone, Debug)]
 pub struct ReferenceLanguage {
     /// The long name of the language (e.g. English, German, Chinese Simplified, French, etc)
     pub long_language_name: String,
@@ -218,6 +219,24 @@ pub enum BookReferenceType {
 
     /// Long versions like "Genesis" or "John"
     Long
+}
+
+/// This function returns a reference language by its language code.
+/// # Params
+/// - `language_code`: The language code of the human language
+/// # Returns
+/// An [`Option<ReferenceLanguage>`] which is [`Some(reference_language)`] if the language specified with the `language_code` exists
+/// or [None] if the language can't be found.
+pub fn get_language_by_code(language_code: &str) -> Option<ReferenceLanguage> {
+    let language_code = language_code.trim().to_lowercase();
+    let reference_languages = &*REFERENCE_LANGUAGES.read().unwrap();
+    
+    for language in reference_languages {
+        if language.language_code.to_lowercase().eq(&language_code) {
+            return Some(language.clone())
+        }
+    }
+    None
 }
 
 fn get_english_reference_language() -> ReferenceLanguage {
