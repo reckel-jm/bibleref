@@ -253,6 +253,7 @@ pub fn get_reference_and_language(reference: String) -> Result<BibleReferenceSea
 /// - [`BibleRangeParsingError::DelimiterNotFound`]: The delimiter between the two parts of the range reference is not found.
 /// - [`BibleRangeParsingError::InvalidFirstPart`]: The first part of the range reference is invalid.
 /// - [`BibleRangeParsingError::InvalidSecondPart`]: The second part of the range reference is invalid.
+/// - [`LanguageHasNoChapterVersDelimiterError`]: The language has no chapter/verse delimiter.
 pub fn parse_range(range_reference: String) -> Result<BibleReferenceRepresentationSearchResult, Box<dyn Error>> {
     if range_reference.is_empty() { return Err(Box::new(ReferenceIsEmptyError)) }
     
@@ -439,5 +440,16 @@ pub mod tests {
         assert_eq!(*reference.bible_reference(), BibleReference::BibleChapter(BibleChapterReference::new(BibleBook::John, 3).unwrap()));
         assert_eq!(reference.language_code(), "de");
         assert_eq!(*reference.reference_type(), BookReferenceType::Short);
+    }
+
+    #[test]
+    fn test_range_parsing() {
+        let range_reference = parse_range("Johannes 4-6".to_string()).unwrap();
+        assert_eq!(range_reference.language_code(), "de");
+        assert_eq!(*range_reference.reference_type(), BookReferenceType::Long);
+        assert_eq!(range_reference.bible_reference(), &BibleReferenceRepresentation::Range(BibleRange::new(
+            BibleReference::BibleChapter(BibleChapterReference::new(BibleBook::John, 4).unwrap()),
+            BibleReference::BibleChapter(BibleChapterReference::new(BibleBook::John, 6).unwrap())
+        ).unwrap()));
     }
 }
