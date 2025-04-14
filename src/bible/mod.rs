@@ -875,7 +875,6 @@ pub fn aggregate_bible_representations(
     let mut representations = bible_representations.clone();
     
     'outer: loop {       
-        let mut changes_done: bool = false;
         
         if representations.len() < 2 {
             return representations;
@@ -904,7 +903,6 @@ pub fn aggregate_bible_representations(
                         representations.push(BibleReferenceRepresentation::Range(new_range));
                         representations.remove(j);
                         representations.remove(i);
-                        changes_done = true;
                         continue 'outer;
                     };
                 },
@@ -917,7 +915,6 @@ pub fn aggregate_bible_representations(
                         representations.push(BibleReferenceRepresentation::Range(new_range));
                         representations.remove(j);
                         representations.remove(i);
-                        changes_done = true;
                         continue 'outer;
                     }
                 },
@@ -927,7 +924,6 @@ pub fn aggregate_bible_representations(
                         representations.push(BibleReferenceRepresentation::Range(new_range));
                         representations.remove(j);
                         representations.remove(i);
-                        changes_done = true;
                         continue 'outer;
                     }
                 },
@@ -937,7 +933,6 @@ pub fn aggregate_bible_representations(
                         representations.push(BibleReferenceRepresentation::Range(new_range));
                         representations.remove(j);
                         representations.remove(i);
-                        changes_done = true;
                         continue 'outer;
                     }
                 }
@@ -945,11 +940,10 @@ pub fn aggregate_bible_representations(
             
         }
 
-        if !changes_done {
-            representations.sort_unstable();
-            representations.dedup();
-            return representations;
-        }
+        representations.sort_unstable();
+        representations.dedup();
+        return representations;
+        
     }
 }
 

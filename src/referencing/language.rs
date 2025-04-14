@@ -212,7 +212,7 @@ pub fn get_range_in_language(bible_range: &BibleRange, language_code: &str, book
 }
 
 /// The type of a book reference in human language
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum BookReferenceType {
     /// Short versions like "Gen" or "Joh"
     Short,
