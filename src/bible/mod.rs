@@ -195,12 +195,9 @@ impl BibleReference {
         match self {
             BibleReference::BibleBook(book) => {
                 let next_book = get_bible_book_by_number(book.book.number() + 1);
-                match next_book {
-                    Some(next_book) => Some(BibleReference::BibleBook(BibleBookReference::new(
+                next_book.map(|next_book| BibleReference::BibleBook(BibleBookReference::new(
                         next_book,
-                    ))),
-                    None => None,
-                }
+                    )))
             }
             BibleReference::BibleChapter(chapter) => {
                 let next_chapter = chapter.chapter + 1;
@@ -208,12 +205,9 @@ impl BibleReference {
                     Ok(next_chapter) => Some(BibleReference::BibleChapter(next_chapter)),
                     Err(_) => {
                         let next_book = get_bible_book_by_number(chapter.book().number() + 1);
-                        match next_book {
-                            Some(next_book) => Some(BibleReference::BibleBook(
+                        next_book.map(|next_book| BibleReference::BibleBook(
                                 BibleBookReference::new(next_book),
-                            )),
-                            None => None,
-                        }
+                            ))
                     }
                 }
             }
@@ -225,18 +219,13 @@ impl BibleReference {
                         let next_chapter = verse.chapter + 1;
                         match BibleChapterReference::new(verse.book(), next_chapter) {
                             Ok(next_chapter) => {
-                                return Some(BibleReference::BibleChapter(next_chapter));
+                                Some(BibleReference::BibleChapter(next_chapter))
                             }
                             Err(_) => {
                                 let next_book = get_bible_book_by_number(verse.book().number() + 1);
-                                match next_book {
-                                    Some(next_book) => {
-                                        return Some(BibleReference::BibleBook(
+                                next_book.map(|next_book| BibleReference::BibleBook(
                                             BibleBookReference::new(next_book),
-                                        ));
-                                    }
-                                    None => return None,
-                                }
+                                        ))
                             }
                         }
                     }
@@ -252,12 +241,9 @@ impl BibleReference {
         match self {
             BibleReference::BibleBook(book) => {
                 let previous_book = get_bible_book_by_number(book.book.number() - 1);
-                match previous_book {
-                    Some(previous_book) => Some(BibleReference::BibleBook(
+                previous_book.map(|previous_book| BibleReference::BibleBook(
                         BibleBookReference::new(previous_book),
-                    )),
-                    None => None,
-                }
+                    ))
             }
             BibleReference::BibleChapter(chapter) => {
                 let previous_chapter = chapter.chapter - 1;
@@ -265,12 +251,9 @@ impl BibleReference {
                     Ok(previous_chapter) => Some(BibleReference::BibleChapter(previous_chapter)),
                     Err(_) => {
                         let previous_book = get_bible_book_by_number(chapter.book().number() - 1);
-                        match previous_book {
-                            Some(previous_book) => Some(BibleReference::BibleBook(
+                        previous_book.map(|previous_book| BibleReference::BibleBook(
                                 BibleBookReference::new(previous_book),
-                            )),
-                            None => None,
-                        }
+                            ))
                     }
                 }
             }
@@ -282,19 +265,14 @@ impl BibleReference {
                         let previous_chapter = verse.chapter - 1;
                         match BibleChapterReference::new(verse.book(), previous_chapter) {
                             Ok(previous_chapter) => {
-                                return Some(BibleReference::BibleChapter(previous_chapter));
+                                Some(BibleReference::BibleChapter(previous_chapter))
                             }
                             Err(_) => {
                                 let previous_book =
                                     get_bible_book_by_number(verse.book().number() - 1);
-                                match previous_book {
-                                    Some(previous_book) => {
-                                        return Some(BibleReference::BibleBook(
+                                previous_book.map(|previous_book| BibleReference::BibleBook(
                                             BibleBookReference::new(previous_book),
-                                        ));
-                                    }
-                                    None => return None,
-                                }
+                                        ))
                             }
                         }
                     }
@@ -921,7 +899,7 @@ pub fn aggregate_bible_representations(
 
         for i in 0..representations.len() - 1 {
             let j = i + 1;
-            if representations.get(i) == None || representations.get(j) == None {
+            if representations.get(i).is_none() || representations.get(j).is_none() {
                 continue;
             }
 

@@ -142,20 +142,20 @@ impl ReferenceLanguage {
         match bible_range {
             BibleRange::BookRange(book_range) => {
                 if book_range.start() == book_range.end() {
-                    return self.create_reference(
+                    self.create_reference(
                         &BibleReference::BibleBook(book_range.start()),
                         book_reference_type,
-                    );
+                    )
                 } else {
                     self.create_bible_range_unshortened(bible_range, book_reference_type)
                 }
             }
             BibleRange::ChapterRange(chapter_range) => {
                 if chapter_range.start() == chapter_range.end() {
-                    return self.create_reference(
+                    self.create_reference(
                         &BibleReference::BibleChapter(chapter_range.start()),
                         book_reference_type,
-                    );
+                    )
                 } else if chapter_range.start().book() == chapter_range.end().book() {
                     return format!(
                         "{}{}{}",
@@ -172,10 +172,10 @@ impl ReferenceLanguage {
             }
             BibleRange::VerseRange(verse_range) => {
                 if verse_range.start() == verse_range.end() {
-                    return self.create_reference(
+                    self.create_reference(
                         &BibleReference::BibleVerse(verse_range.start()),
                         book_reference_type,
-                    );
+                    )
                 } else if verse_range.start().book() == verse_range.end().book()
                     && verse_range.start().chapter() == verse_range.end().chapter()
                 {
@@ -285,10 +285,10 @@ pub fn get_reference_representation_in_language(
 ) -> Result<String, LanguageDoesNotExistError> {
     match reference {
         BibleReferenceRepresentation::Single(single_repr) => {
-            get_reference_in_language(&single_repr, language_code, book_reference_type)
+            get_reference_in_language(single_repr, language_code, book_reference_type)
         }
         BibleReferenceRepresentation::Range(range_repr) => get_range_in_language(
-            &range_repr,
+            range_repr,
             language_code,
             book_reference_type,
             shortened_string,

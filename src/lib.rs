@@ -112,10 +112,9 @@ pub fn translate(bible_reference: &str, target_lang_code: &str) -> Result<String
         Ok(bible_reference_representation_search_result) => {
             match get_reference_representation_in_language(
                 bible_reference_representation_search_result.bible_reference(),
-                &target_lang_code,
-                bible_reference_representation_search_result
-                    .reference_type()
-                    .clone(),
+                target_lang_code,
+                *bible_reference_representation_search_result
+                    .reference_type(),
                 true,
             ) {
                 Ok(translated_reference) => Ok(translated_reference),

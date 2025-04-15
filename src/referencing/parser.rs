@@ -134,15 +134,15 @@ pub fn parse_reference(
 ) -> Result<BibleReferenceRepresentationSearchResult, Box<dyn Error>> {
     // First we try to parse a range
     match parse_range_reference(parsed_string.to_string()) {
-        Ok(range_result) => return Ok(range_result),
+        Ok(range_result) => Ok(range_result),
         // If parsing a range fails, we try to parse a single reference
         Err(range_reference_error) => match parse_single_reference(parsed_string.to_string()) {
             Ok(single) => {
-                return Ok(BibleReferenceRepresentationSearchResult::new(
+                Ok(BibleReferenceRepresentationSearchResult::new(
                     BibleReferenceRepresentation::Single(single.bible_reference),
                     single.language_code,
                     single.reference_type,
-                ));
+                ))
             }
             Err(single_reference_error) => {
                 match range_reference_error.downcast_ref::<BibleRangeParsingError>() {
@@ -203,13 +203,11 @@ pub fn parse_single_reference(
             ParserFlag::BookPart => {
                 if i == 0 {
                     reference_book_str.push(c);
+                } else if c.is_numeric() {
+                    reference_chapter_str.push(c);
+                    parser_flag = ParserFlag::ChapterPart;
                 } else {
-                    if c.is_numeric() {
-                        reference_chapter_str.push(c);
-                        parser_flag = ParserFlag::ChapterPart;
-                    } else {
-                        reference_book_str.push(c);
-                    }
+                    reference_book_str.push(c);
                 }
             }
             ParserFlag::ChapterPart => {
@@ -231,30 +229,30 @@ pub fn parse_single_reference(
 
     match book_finding {
         None => {
-            return Err(Box::new(BibleBookNotFoundError {
+            Err(Box::new(BibleBookNotFoundError {
                 provided_bible_book_string: reference_book_str.clone(),
-            }));
+            }))
         }
         Some((bible_book, language, book_reference_type)) => {
             match (reference_chapter_str.len(), reference_verse_str.len()) {
                 (0, 0) => {
-                    return Ok(BibleReferenceSearchResult::new(
+                    Ok(BibleReferenceSearchResult::new(
                         BibleReference::BibleBook(BibleBookReference::new(bible_book)),
                         language,
                         book_reference_type,
-                    ));
+                    ))
                 }
                 (0.., 0) => {
                     let chapter: u8 = reference_chapter_str.parse().unwrap();
                     match BibleChapterReference::new(bible_book, chapter) {
                         Ok(chapter_reference) => {
-                            return Ok(BibleReferenceSearchResult::new(
+                            Ok(BibleReferenceSearchResult::new(
                                 BibleReference::BibleChapter(chapter_reference),
                                 language.clone(),
                                 book_reference_type,
-                            ));
+                            ))
                         }
-                        Err(err) => return Err(Box::new(err)),
+                        Err(err) => Err(Box::new(err)),
                     }
                 }
                 (0.., 0..) => {
@@ -263,13 +261,13 @@ pub fn parse_single_reference(
 
                     match BibleVerseReference::new(bible_book, chapter, verse) {
                         Ok(verse_reference) => {
-                            return Ok(BibleReferenceSearchResult::new(
+                            Ok(BibleReferenceSearchResult::new(
                                 BibleReference::BibleVerse(verse_reference),
                                 language.clone(),
                                 book_reference_type,
-                            ));
+                            ))
                         }
-                        Err(err) => return Err(Box::new(err)),
+                        Err(err) => Err(Box::new(err)),
                     }
                 }
             }
@@ -323,64 +321,61 @@ pub fn parse_range_reference(
     for c in reference.chars() {
         current_part.push(c);
 
-        match parse_single_reference(current_part.clone()) {
-            Ok(reference) => {
-                // We have found a valid reference
-                first_search_result_option = Some(reference);
-                // Now get the language code and the range delimiter
-                let language = get_language_by_code(
-                    first_search_result_option.clone().unwrap().language_code(),
-                )
-                .unwrap();
-                // Split the current part by the range delimiter
-                let parts: Vec<&str> = range_reference
-                    .split(language.range_delimiter.as_str())
-                    .collect();
-                if parts.len() < 2 {
-                    return Err(Box::new(BibleRangeParsingError::DelimiterNotFound));
-                }
-                match parse_single_reference(parts[0].to_string()) {
-                    Ok(reference) => {
-                        // We have found the first part of the range
-                        let first_found_reference = reference.bible_reference().clone();
-                        let chapter_vers_delimiter = match language.chapter_vers_delimiters.first()
-                        {
-                            Some(delimiter) => delimiter,
-                            None => {
-                                return Err(Box::new(LanguageHasNoChapterVersDelimiterError {
-                                    language_code: language.language_code.clone(),
-                                }));
-                            }
-                        };
-                        match parse_second_range_part(
-                            &first_found_reference,
-                            chapter_vers_delimiter,
-                            parts[1].to_string(),
-                        ) {
-                            Ok(second_found_reference) => {
-                                // We have found the second part of the range
-                                let range =
-                                    BibleRange::new(first_found_reference, second_found_reference)
-                                        .unwrap();
-                                return Ok(BibleReferenceRepresentationSearchResult::new(
-                                    BibleReferenceRepresentation::Range(range),
-                                    reference.language_code().clone(),
-                                    reference.reference_type().clone(),
-                                ));
-                            }
-                            Err(error) => {
-                                // The second part is invalid
-                                return Err(error);
-                            }
+        if let Ok(reference) = parse_single_reference(current_part.clone()) {
+            // We have found a valid reference
+            first_search_result_option = Some(reference);
+            // Now get the language code and the range delimiter
+            let language = get_language_by_code(
+                first_search_result_option.clone().unwrap().language_code(),
+            )
+            .unwrap();
+            // Split the current part by the range delimiter
+            let parts: Vec<&str> = range_reference
+                .split(language.range_delimiter.as_str())
+                .collect();
+            if parts.len() < 2 {
+                return Err(Box::new(BibleRangeParsingError::DelimiterNotFound));
+            }
+            match parse_single_reference(parts[0].to_string()) {
+                Ok(reference) => {
+                    // We have found the first part of the range
+                    let first_found_reference = reference.bible_reference().clone();
+                    let chapter_vers_delimiter = match language.chapter_vers_delimiters.first()
+                    {
+                        Some(delimiter) => delimiter,
+                        None => {
+                            return Err(Box::new(LanguageHasNoChapterVersDelimiterError {
+                                language_code: language.language_code.clone(),
+                            }));
+                        }
+                    };
+                    match parse_second_range_part(
+                        &first_found_reference,
+                        chapter_vers_delimiter,
+                        parts[1].to_string(),
+                    ) {
+                        Ok(second_found_reference) => {
+                            // We have found the second part of the range
+                            let range =
+                                BibleRange::new(first_found_reference, second_found_reference)
+                                    .unwrap();
+                            return Ok(BibleReferenceRepresentationSearchResult::new(
+                                BibleReferenceRepresentation::Range(range),
+                                reference.language_code().clone(),
+                                *reference.reference_type(),
+                            ));
+                        }
+                        Err(error) => {
+                            // The second part is invalid
+                            return Err(error);
                         }
                     }
-                    Err(_) => {
-                        // The first part is invalid
-                        return Err(Box::new(BibleRangeParsingError::InvalidFirstPart));
-                    }
+                }
+                Err(_) => {
+                    // The first part is invalid
+                    return Err(Box::new(BibleRangeParsingError::InvalidFirstPart));
                 }
             }
-            Err(_) => (),
         }
     }
 
@@ -477,7 +472,7 @@ fn parse_second_range_part(
                 }
                 _ => {
                     // We have more than two parts, so this is unvalid
-                    return Err(Box::new(BibleRangeParsingError::InvalidSecondPart));
+                    Err(Box::new(BibleRangeParsingError::InvalidSecondPart))
                 }
             }
         }
