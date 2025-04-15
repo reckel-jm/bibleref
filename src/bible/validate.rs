@@ -7,7 +7,7 @@ pub fn validate_book_chapter(
     book: &BibleBook,
     chapter: &BibleChapter,
 ) -> Result<(), BibleReferenceValidationError> {
-    if *chapter <= 0 || chapter > &get_number_of_chapters(book) {
+    if *chapter == 0 || chapter > &get_number_of_chapters(book) {
         Err(BibleReferenceValidationError {
             problem: BibleReferenceProblem::ChapterDoesNotExist,
         })
@@ -99,12 +99,12 @@ pub fn validate_book_chapter_verse(
     chapter: &BibleChapter,
     verse: &BibleVerse,
 ) -> Result<(), BibleReferenceValidationError> {
-    if *chapter <= 0 {
+    if *chapter == 0 {
         return Err(BibleReferenceValidationError {
             problem: (BibleReferenceProblem::ChapterDoesNotExist),
         });
     }
-    if *verse <= 0 {
+    if *verse == 0 {
         return Err(BibleReferenceValidationError {
             problem: (BibleReferenceProblem::VerseDoesNotExist),
         });

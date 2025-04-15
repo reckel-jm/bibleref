@@ -180,7 +180,7 @@ impl PartialOrd for BibleReferenceRepresentation {
 }
 
 /// This enum represents *any* single Bible reference (one book, one chapter or one verse)
-#[derive(PartialEq, Eq, PartialOrd, Deserialize, Debug, Clone, Serialize)]
+#[derive(PartialEq, Eq, Deserialize, Debug, Clone, Serialize)]
 pub enum BibleReference {
     BibleBook(BibleBookReference),
     BibleChapter(BibleChapterReference),
@@ -195,9 +195,8 @@ impl BibleReference {
         match self {
             BibleReference::BibleBook(book) => {
                 let next_book = get_bible_book_by_number(book.book.number() + 1);
-                next_book.map(|next_book| BibleReference::BibleBook(BibleBookReference::new(
-                        next_book,
-                    )))
+                next_book
+                    .map(|next_book| BibleReference::BibleBook(BibleBookReference::new(next_book)))
             }
             BibleReference::BibleChapter(chapter) => {
                 let next_chapter = chapter.chapter + 1;
@@ -205,9 +204,9 @@ impl BibleReference {
                     Ok(next_chapter) => Some(BibleReference::BibleChapter(next_chapter)),
                     Err(_) => {
                         let next_book = get_bible_book_by_number(chapter.book().number() + 1);
-                        next_book.map(|next_book| BibleReference::BibleBook(
-                                BibleBookReference::new(next_book),
-                            ))
+                        next_book.map(|next_book| {
+                            BibleReference::BibleBook(BibleBookReference::new(next_book))
+                        })
                     }
                 }
             }
@@ -218,14 +217,12 @@ impl BibleReference {
                     Err(_) => {
                         let next_chapter = verse.chapter + 1;
                         match BibleChapterReference::new(verse.book(), next_chapter) {
-                            Ok(next_chapter) => {
-                                Some(BibleReference::BibleChapter(next_chapter))
-                            }
+                            Ok(next_chapter) => Some(BibleReference::BibleChapter(next_chapter)),
                             Err(_) => {
                                 let next_book = get_bible_book_by_number(verse.book().number() + 1);
-                                next_book.map(|next_book| BibleReference::BibleBook(
-                                            BibleBookReference::new(next_book),
-                                        ))
+                                next_book.map(|next_book| {
+                                    BibleReference::BibleBook(BibleBookReference::new(next_book))
+                                })
                             }
                         }
                     }
@@ -241,9 +238,9 @@ impl BibleReference {
         match self {
             BibleReference::BibleBook(book) => {
                 let previous_book = get_bible_book_by_number(book.book.number() - 1);
-                previous_book.map(|previous_book| BibleReference::BibleBook(
-                        BibleBookReference::new(previous_book),
-                    ))
+                previous_book.map(|previous_book| {
+                    BibleReference::BibleBook(BibleBookReference::new(previous_book))
+                })
             }
             BibleReference::BibleChapter(chapter) => {
                 let previous_chapter = chapter.chapter - 1;
@@ -251,9 +248,9 @@ impl BibleReference {
                     Ok(previous_chapter) => Some(BibleReference::BibleChapter(previous_chapter)),
                     Err(_) => {
                         let previous_book = get_bible_book_by_number(chapter.book().number() - 1);
-                        previous_book.map(|previous_book| BibleReference::BibleBook(
-                                BibleBookReference::new(previous_book),
-                            ))
+                        previous_book.map(|previous_book| {
+                            BibleReference::BibleBook(BibleBookReference::new(previous_book))
+                        })
                     }
                 }
             }
@@ -270,9 +267,11 @@ impl BibleReference {
                             Err(_) => {
                                 let previous_book =
                                     get_bible_book_by_number(verse.book().number() - 1);
-                                previous_book.map(|previous_book| BibleReference::BibleBook(
-                                            BibleBookReference::new(previous_book),
-                                        ))
+                                previous_book.map(|previous_book| {
+                                    BibleReference::BibleBook(BibleBookReference::new(
+                                        previous_book,
+                                    ))
+                                })
                             }
                         }
                     }
@@ -320,17 +319,29 @@ impl Ord for BibleReference {
                 if a.book == b.book && a.chapter == b.chapter {
                     Ordering::Less
                 } else {
-                    a.book().number().cmp(&b.book.number())
+                    match a.book().number().cmp(&b.book.number()) {
+                        Ordering::Equal => a.chapter.cmp(&b.chapter),
+                        other => other,
+                    }
                 }
             }
             (BibleReference::BibleVerse(a), BibleReference::BibleChapter(b)) => {
                 if a.book == b.book && a.chapter == b.chapter {
                     Ordering::Greater
                 } else {
-                    a.book().number().cmp(&b.book.number())
+                    match a.book().number().cmp(&b.book.number()) {
+                        Ordering::Equal => a.chapter.cmp(&b.chapter),
+                        other => other,
+                    }
                 }
             }
         }
+    }
+}
+
+impl PartialOrd for BibleReference {
+    fn partial_cmp(&self, other: &BibleReference) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -1056,8 +1067,8 @@ mod tests {
             BibleReference::BibleChapter(BibleChapterReference::new(BibleBook::John, 4).unwrap());
         let bibleref8 =
             BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::John, 3, 16).unwrap());
-        assert!(bibleref7 < bibleref8);
-        assert!(bibleref8 > bibleref7);
+        assert!(bibleref7 > bibleref8);
+        assert!(bibleref8 < bibleref7);
     }
 
     #[test]
