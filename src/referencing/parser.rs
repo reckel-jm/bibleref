@@ -11,7 +11,6 @@ use crate::{
         BibleBook, BibleBookReference, BibleChapterReference, BibleRange, BibleReference,
         BibleReferenceRepresentation, BibleVerseReference,
     },
-    parse_bible_reference,
     referencing::{
         errors::{BibleBookNotFoundError, BibleRangeParsingError, ReferenceIsEmptyError},
         language::get_language_by_code,
@@ -129,6 +128,35 @@ impl BibleReferenceRepresentationSearchResult {
     }
 }
 
+/// Parses a human readable Bible reference representation (a range or a single reference) and returns a [BibleReferenceRepresentationSearchResult].
+pub fn parse_reference(
+    parsed_string: &str,
+) -> Result<BibleReferenceRepresentationSearchResult, Box<dyn Error>> {
+    // First we try to parse a range
+    match parse_range_reference(parsed_string.to_string()) {
+        Ok(range_result) => return Ok(range_result),
+        // If parsing a range fails, we try to parse a single reference
+        Err(range_reference_error) => match parse_single_reference(parsed_string.to_string()) {
+            Ok(single) => {
+                return Ok(BibleReferenceRepresentationSearchResult::new(
+                    BibleReferenceRepresentation::Single(single.bible_reference),
+                    single.language_code,
+                    single.reference_type,
+                ));
+            }
+            Err(single_reference_error) => {
+                match range_reference_error.downcast_ref::<BibleRangeParsingError>() {
+                    Some(range_parsing_error) => match range_parsing_error {
+                        BibleRangeParsingError::DelimiterNotFound => Err(single_reference_error),
+                        _ => Err(range_reference_error),
+                    },
+                    None => Err(range_reference_error),
+                }
+            }
+        },
+    }
+}
+
 /// Gets a (internal) Bible reference and the language code of a given human readable reference.
 /// Returns an error if parsing fails.
 ///
@@ -138,16 +166,16 @@ impl BibleReferenceRepresentationSearchResult {
 /// - A result with either a [BibleReferenceSearchResult] or a [`Box<dyn Error>`] with an appropriate error message.
 /// # Example
 /// ```
-/// use bibleref::referencing::parser::{BibleReferenceSearchResult, get_reference_and_language};
+/// use bibleref::referencing::parser::{BibleReferenceSearchResult, parse_single_reference};
 /// use bibleref::referencing::language::BookReferenceType;
 /// use bibleref::bible::{BibleBook, BibleReference, BibleVerseReference};
 ///
-/// let bible_reference_search_result: BibleReferenceSearchResult = get_reference_and_language("1. Mose 1,3".to_string()).unwrap();
+/// let bible_reference_search_result: BibleReferenceSearchResult = parse_single_reference("1. Mose 1,3".to_string()).unwrap();
 /// assert_eq!(*bible_reference_search_result.bible_reference(), BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 3).unwrap()));
 /// assert_eq!(bible_reference_search_result.language_code(), "de");
 /// assert_eq!(*bible_reference_search_result.reference_type(), BookReferenceType::Long);
 /// ```
-pub fn get_reference_and_language(
+pub fn parse_single_reference(
     reference: String,
 ) -> Result<BibleReferenceSearchResult, Box<dyn Error>> {
     if reference.is_empty() {
@@ -257,12 +285,12 @@ pub fn get_reference_and_language(
 /// - A result with either a [BibleReferenceRepresentationSearchResult] or a [`Box<dyn Error>`] with an appropriate error message.
 /// # Example
 /// ```
-/// use bibleref::referencing::parser::{BibleReferenceRepresentationSearchResult, parse_range};
+/// use bibleref::referencing::parser::{BibleReferenceRepresentationSearchResult, parse_range_reference};
 /// use bibleref::referencing::language::BookReferenceType;
 /// use bibleref::bible::{BibleBook, BibleReference, BibleVerseReference};
 /// use bibleref::bible::BibleRange;
 /// use bibleref::bible::BibleReferenceRepresentation;
-/// let bible_reference_representation_search_result: BibleReferenceRepresentationSearchResult = parse_range("1. Mose 1,3-5".to_string()).unwrap();
+/// let bible_reference_representation_search_result: BibleReferenceRepresentationSearchResult = parse_range_reference("1. Mose 1,3-5".to_string()).unwrap();
 /// assert_eq!(bible_reference_representation_search_result.language_code(), "de");
 /// assert_eq!(*bible_reference_representation_search_result.reference_type(), BookReferenceType::Long);
 /// assert_eq!(bible_reference_representation_search_result.bible_reference(), &BibleReferenceRepresentation::Range(BibleRange::new(
@@ -277,7 +305,7 @@ pub fn get_reference_and_language(
 /// - [`BibleRangeParsingError::InvalidFirstPart`]: The first part of the range reference is invalid.
 /// - [`BibleRangeParsingError::InvalidSecondPart`]: The second part of the range reference is invalid.
 /// - [`LanguageHasNoChapterVersDelimiterError`]: The language has no chapter/verse delimiter.
-pub fn parse_range(
+pub fn parse_range_reference(
     range_reference: String,
 ) -> Result<BibleReferenceRepresentationSearchResult, Box<dyn Error>> {
     if range_reference.is_empty() {
@@ -295,7 +323,7 @@ pub fn parse_range(
     for c in reference.chars() {
         current_part.push(c);
 
-        match get_reference_and_language(current_part.clone()) {
+        match parse_single_reference(current_part.clone()) {
             Ok(reference) => {
                 // We have found a valid reference
                 first_search_result_option = Some(reference);
@@ -311,7 +339,7 @@ pub fn parse_range(
                 if parts.len() < 2 {
                     return Err(Box::new(BibleRangeParsingError::DelimiterNotFound));
                 }
-                match get_reference_and_language(parts[0].to_string()) {
+                match parse_single_reference(parts[0].to_string()) {
                     Ok(reference) => {
                         // We have found the first part of the range
                         let first_found_reference = reference.bible_reference().clone();
@@ -377,10 +405,10 @@ fn parse_second_range_part(
     chapter_vers_delimiter: &str,
     part_string: String,
 ) -> Result<BibleReference, Box<dyn Error>> {
-    match parse_bible_reference(part_string.clone()) {
-        Ok(reference) => {
+    match parse_single_reference(part_string.clone()) {
+        Ok(reference_search_result) => {
             // We have found a valid reference
-            Ok(reference)
+            Ok(reference_search_result.bible_reference)
         }
         Err(_) => {
             // Try to split the part string by the chapter/verse delimiter
@@ -518,7 +546,7 @@ pub mod tests {
 
     #[test]
     fn test_reference_finding() {
-        let reference = get_reference_and_language("1. Mose 1,3".to_string()).unwrap();
+        let reference = parse_single_reference("1. Mose 1,3".to_string()).unwrap();
         assert_eq!(
             *reference.bible_reference(),
             BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 3).unwrap())
@@ -526,7 +554,7 @@ pub mod tests {
         assert_eq!(reference.language_code(), "de");
         assert_eq!(*reference.reference_type(), BookReferenceType::Long);
 
-        let reference = get_reference_and_language("Joh 3".to_string()).unwrap();
+        let reference = parse_single_reference("Joh 3".to_string()).unwrap();
 
         assert_eq!(
             *reference.bible_reference(),
@@ -538,7 +566,7 @@ pub mod tests {
 
     #[test]
     fn test_range_parsing() {
-        let range_reference = parse_range("Johannes 4-6".to_string()).unwrap();
+        let range_reference = parse_range_reference("Johannes 4-6".to_string()).unwrap();
         assert_eq!(range_reference.language_code(), "de");
         assert_eq!(*range_reference.reference_type(), BookReferenceType::Long);
         assert_eq!(
@@ -556,7 +584,7 @@ pub mod tests {
             )
         );
 
-        let range_reference = parse_range("3. Mose - 4. Mose 3".to_string()).unwrap();
+        let range_reference = parse_range_reference("3. Mose - 4. Mose 3".to_string()).unwrap();
         assert_eq!(range_reference.language_code(), "de");
         assert_eq!(*range_reference.reference_type(), BookReferenceType::Long);
         assert_eq!(
