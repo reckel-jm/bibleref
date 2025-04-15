@@ -137,19 +137,15 @@ pub fn parse_reference(
         Ok(range_result) => Ok(range_result),
         // If parsing a range fails, we try to parse a single reference
         Err(range_reference_error) => match parse_single_reference(parsed_string.to_string()) {
-            Ok(single) => {
-                Ok(BibleReferenceRepresentationSearchResult::new(
-                    BibleReferenceRepresentation::Single(single.bible_reference),
-                    single.language_code,
-                    single.reference_type,
-                ))
-            }
+            Ok(single) => Ok(BibleReferenceRepresentationSearchResult::new(
+                BibleReferenceRepresentation::Single(single.bible_reference),
+                single.language_code,
+                single.reference_type,
+            )),
             Err(single_reference_error) => {
                 match range_reference_error.downcast_ref::<BibleRangeParsingError>() {
-                    Some(range_parsing_error) => match range_parsing_error {
-                        BibleRangeParsingError::DelimiterNotFound => Err(single_reference_error),
-                        _ => Err(range_reference_error),
-                    },
+                    Some(BibleRangeParsingError::DelimiterNotFound) => Err(single_reference_error),
+                    Some(_) => Err(range_reference_error),
                     None => Err(range_reference_error),
                 }
             }
@@ -183,9 +179,9 @@ pub fn parse_single_reference(
     }
 
     enum ParserFlag {
-        BookPart,
-        ChapterPart,
-        VersePart,
+        Book,
+        Chapter,
+        Verse,
     }
 
     // We remove all spaces in the string as we don't need them
@@ -196,28 +192,28 @@ pub fn parse_single_reference(
     let mut reference_chapter_str: String = "".to_string();
     let mut reference_verse_str: String = "".to_string();
 
-    let mut parser_flag: ParserFlag = ParserFlag::BookPart;
+    let mut parser_flag: ParserFlag = ParserFlag::Book;
 
     for (i, c) in reference.chars().enumerate() {
         match parser_flag {
-            ParserFlag::BookPart => {
+            ParserFlag::Book => {
                 if i == 0 {
                     reference_book_str.push(c);
                 } else if c.is_numeric() {
                     reference_chapter_str.push(c);
-                    parser_flag = ParserFlag::ChapterPart;
+                    parser_flag = ParserFlag::Chapter;
                 } else {
                     reference_book_str.push(c);
                 }
             }
-            ParserFlag::ChapterPart => {
+            ParserFlag::Chapter => {
                 if c.is_numeric() {
                     reference_chapter_str.push(c);
                 } else {
-                    parser_flag = ParserFlag::VersePart
+                    parser_flag = ParserFlag::Verse
                 }
             }
-            ParserFlag::VersePart => {
+            ParserFlag::Verse => {
                 if c.is_numeric() {
                     reference_verse_str.push(c);
                 }
@@ -228,30 +224,24 @@ pub fn parse_single_reference(
     let book_finding = find_book_in_any_language(&reference_book_str);
 
     match book_finding {
-        None => {
-            Err(Box::new(BibleBookNotFoundError {
-                provided_bible_book_string: reference_book_str.clone(),
-            }))
-        }
+        None => Err(Box::new(BibleBookNotFoundError {
+            provided_bible_book_string: reference_book_str.clone(),
+        })),
         Some((bible_book, language, book_reference_type)) => {
             match (reference_chapter_str.len(), reference_verse_str.len()) {
-                (0, 0) => {
-                    Ok(BibleReferenceSearchResult::new(
-                        BibleReference::BibleBook(BibleBookReference::new(bible_book)),
-                        language,
-                        book_reference_type,
-                    ))
-                }
+                (0, 0) => Ok(BibleReferenceSearchResult::new(
+                    BibleReference::BibleBook(BibleBookReference::new(bible_book)),
+                    language,
+                    book_reference_type,
+                )),
                 (0.., 0) => {
                     let chapter: u8 = reference_chapter_str.parse().unwrap();
                     match BibleChapterReference::new(bible_book, chapter) {
-                        Ok(chapter_reference) => {
-                            Ok(BibleReferenceSearchResult::new(
-                                BibleReference::BibleChapter(chapter_reference),
-                                language.clone(),
-                                book_reference_type,
-                            ))
-                        }
+                        Ok(chapter_reference) => Ok(BibleReferenceSearchResult::new(
+                            BibleReference::BibleChapter(chapter_reference),
+                            language.clone(),
+                            book_reference_type,
+                        )),
                         Err(err) => Err(Box::new(err)),
                     }
                 }
@@ -260,13 +250,11 @@ pub fn parse_single_reference(
                     let verse: u8 = reference_verse_str.parse().unwrap();
 
                     match BibleVerseReference::new(bible_book, chapter, verse) {
-                        Ok(verse_reference) => {
-                            Ok(BibleReferenceSearchResult::new(
-                                BibleReference::BibleVerse(verse_reference),
-                                language.clone(),
-                                book_reference_type,
-                            ))
-                        }
+                        Ok(verse_reference) => Ok(BibleReferenceSearchResult::new(
+                            BibleReference::BibleVerse(verse_reference),
+                            language.clone(),
+                            book_reference_type,
+                        )),
                         Err(err) => Err(Box::new(err)),
                     }
                 }
@@ -325,10 +313,9 @@ pub fn parse_range_reference(
             // We have found a valid reference
             first_search_result_option = Some(reference);
             // Now get the language code and the range delimiter
-            let language = get_language_by_code(
-                first_search_result_option.clone().unwrap().language_code(),
-            )
-            .unwrap();
+            let language =
+                get_language_by_code(first_search_result_option.clone().unwrap().language_code())
+                    .unwrap();
             // Split the current part by the range delimiter
             let parts: Vec<&str> = range_reference
                 .split(language.range_delimiter.as_str())
@@ -340,8 +327,7 @@ pub fn parse_range_reference(
                 Ok(reference) => {
                     // We have found the first part of the range
                     let first_found_reference = reference.bible_reference().clone();
-                    let chapter_vers_delimiter = match language.chapter_vers_delimiters.first()
-                    {
+                    let chapter_vers_delimiter = match language.chapter_vers_delimiters.first() {
                         Some(delimiter) => delimiter,
                         None => {
                             return Err(Box::new(LanguageHasNoChapterVersDelimiterError {

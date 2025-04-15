@@ -20,6 +20,7 @@ pub mod errors;
 
 use std::cmp::Ordering;
 
+use lists::{BibleBookList, BibleChapterList, BibleReferenceList, BibleVerseList};
 use serde::{Deserialize, Serialize};
 use validate::*;
 
@@ -346,7 +347,7 @@ impl PartialOrd for BibleReference {
 }
 
 /// The struct BibleBook contains all books of the Bible in their correct order. As it derives from `PartialOrd` and `PartialEq`, you can make comparisons like `<` or `>` to determine whether a book is before or after an other.
-#[derive(PartialEq, PartialOrd, Eq, Serialize, Deserialize, Debug, Copy, Clone, Hash)]
+#[derive(PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize, Debug, Copy, Clone, Hash)]
 pub enum BibleBook {
     Genesis,
     Exodus,
@@ -414,12 +415,6 @@ pub enum BibleBook {
     IIIJohn,
     Jude,
     Revelation,
-}
-
-impl Ord for BibleBook {
-    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.number().cmp(&other.number())
-    }
 }
 
 impl BibleBook {
@@ -660,8 +655,8 @@ impl BibleBookRange {
     }
 
     /// Returns the range as a [BibleBookList]
-    pub fn as_list(&self) -> lists::BibleBookList {
-        let mut books: lists::BibleBookList = vec![];
+    pub fn as_list(&self) -> BibleBookList {
+        let mut books: BibleBookList = vec![];
         for i in self.start.book().number()..=self.end.book().number() {
             books.push(BibleBookReference::new(
                 get_bible_book_by_number(i).unwrap(),
@@ -703,8 +698,8 @@ impl BibleChapterRange {
         self.end.clone()
     }
     /// Returns the range as a [BibleChapterList]
-    pub fn as_list(&self) -> lists::BibleChapterList {
-        let mut chapters: lists::BibleChapterList = vec![];
+    pub fn as_list(&self) -> BibleChapterList {
+        let mut chapters: BibleChapterList = vec![];
         for i in self.start.chapter()..=self.end.chapter() {
             chapters.push(BibleChapterReference::new(self.start.book(), i).unwrap());
         }
@@ -747,8 +742,8 @@ impl BibleVerseRange {
     /// Returns the range as a [BibleVerseList]
     /// # Note
     /// This function will return all verses in the range, including the start and end verse.
-    pub fn as_list(&self) -> lists::BibleVerseList {
-        let mut verses: lists::BibleVerseList = vec![];
+    pub fn as_list(&self) -> BibleVerseList {
+        let mut verses: BibleVerseList = vec![];
         for i in self.start.verse()..=self.end.verse() {
             verses.push(
                 BibleVerseReference::new(self.start.book(), self.start.chapter(), i).unwrap(),
@@ -852,7 +847,7 @@ impl BibleRange {
     }
 
     /// Returns the range as a list (vector) of Bible references ([BibleReference]). The list will contain all references in the range, including the start and end reference.
-    pub fn as_list(&self) -> lists::BibleReferenceList {
+    pub fn as_list(&self) -> BibleReferenceList {
         match self {
             BibleRange::BookRange(range) => range
                 .as_list()
