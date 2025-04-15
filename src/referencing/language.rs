@@ -3,6 +3,9 @@
 use once_cell::sync::Lazy;
 use std::{collections::HashMap, sync::RwLock};
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use crate::bible::{BibleBook, BibleRange, BibleReference, BibleReferenceRepresentation};
 
 use super::errors::LanguageDoesNotExistError;
@@ -33,6 +36,7 @@ pub static REFERENCE_LANGUAGES: Lazy<RwLock<Vec<ReferenceLanguage>>> = Lazy::new
 
 /// A struct representing a human used language where Bible references can be reprsented.
 #[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ReferenceLanguage {
     /// The long name of the language (e.g. English, German, Chinese Simplified, French, etc)
     pub long_language_name: String,
@@ -298,6 +302,7 @@ pub fn get_reference_representation_in_language(
 
 /// The type of a book reference in human language
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum BookReferenceType {
     /// Short versions like "Gen" or "Joh"
     Short,

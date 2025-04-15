@@ -3,9 +3,16 @@
 //!
 //! # General structure
 //! There exists several *types* of Bible references:
-//! - A Reference to a Bible book [BibleBookReference] is defined by the concerned book only (as it is the highest layer).
-//! - A Reference to a Bible chapter [BibleChapterReference] is defined by the concerned book *and* the chapter of the book.
-//! - A Reference to a Bible verse [BibleVerseReference] is defined by the book, the chapter and the verse.
+//! - A single Bible reference [BibleReference] can be a book, a chapter or a verse.
+//!     - A Reference to a Bible book [BibleBookReference] is defined by the concerned book only (as it is the highest layer).
+//!     - A Reference to a Bible chapter [BibleChapterReference] is defined by the concerned book *and* the chapter of the book.
+//!     - A Reference to a Bible verse [BibleVerseReference] is defined by the book, the chapter and the verse.
+//! - A range of Bible references can be a range of books, chapters or verses. A range of Bible references is represented by the [BibleRange] struct.
+//!     - A [BibleBookRange] is a range of (complete) Bible books.
+//!     - A [BibleChapterRange] is a range of Bible chapters (which are described by the book and the chapter).
+//!     - A [BibleVerseRange] is a range of Bible verses (which are described by the book, chapter and verse).
+//! - A [BibleReferenceRepresentation] is an enum used as representation of a Bible reference which can be a single reference or a range of references. It should be used to represent a Bible reference in a more generic way and can do conversions.
+//! 
 //!
 //! [BibleChapterReference]s and [BibleVerseReference]s could be invalid if the chapter and verse don't exist in the Bible book. To prevent the creation of *invalid* references, the structs must be created via the `new` functions which return an [Result<BibleChapterReference, BibleReferenceValidationError>] or a [Result<BibleVerseReference, BibleReferenceValidationError>]. If the validation fails (the reference does not exist in the Bible), the [BibleReferenceValidationError::problem] field contains detailed information about the failure.
 
@@ -20,14 +27,18 @@ pub mod errors;
 
 use std::cmp::Ordering;
 
-use lists::{BibleBookList, BibleChapterList, BibleReferenceList, BibleVerseList};
+#[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
+
+use lists::{BibleBookList, BibleChapterList, BibleReferenceList, BibleVerseList};
+
 use validate::*;
 
 use self::errors::BibleReferenceValidationError;
 
 /// This struct represents a valid Bible reference which consists of a book.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BibleBookReference {
     book: BibleBook,
 }
@@ -43,7 +54,8 @@ impl BibleBookReference {
 }
 
 /// This struct represents a Bible reference which is valid (can be found in a real Bible), consisting of a book and a chapter.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BibleChapterReference {
     book: BibleBook,
     chapter: BibleChapter,
@@ -77,7 +89,8 @@ impl BibleChapterReference {
 /// Please note the following: There are some differences concerning the number of verses of certain chapters depending on some Bible versions, e.g. in English Bible translations, Psalms may have one verse more as in most German translations–because the introduction words at the beginning of some Psalms are counted as a separate verse, while other translations might render them as the preface (or a verse 0). In this crate, we are always assuming the **maximum amount** of verses, so that all translations and versions can be used.
 /// In the new testament, the Textus Receptus is used as template for determining the numbers of chapters and verses.
 /// Some books (like the book of Jude) may only have one Chapter. Normally, in human languages people would only quote the verse and leave the chapter out (e.g. Jude 13)–however, this will be parsed as Jude 1:13 technically.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BibleVerseReference {
     book: BibleBook,
     chapter: BibleChapter,
@@ -119,7 +132,8 @@ impl BibleVerseReference {
 
 /// This enum represents all possible representations of one or multiple Bible references.
 /// It can be a reference to a book, a chapter or a verse. It can also be a range of books, chapters or verses or to a list of books, chapters or verses.
-#[derive(PartialEq, Eq, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum BibleReferenceRepresentation {
     /// A single Bible reference
     Single(BibleReference),
@@ -235,7 +249,8 @@ impl PartialOrd for BibleReferenceRepresentation {
 }
 
 /// This enum represents *any* single Bible reference (one book, one chapter or one verse)
-#[derive(PartialEq, Eq, Deserialize, Debug, Clone, Serialize)]
+#[derive(PartialEq, Eq, Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum BibleReference {
     BibleBook(BibleBookReference),
     BibleChapter(BibleChapterReference),
@@ -401,7 +416,8 @@ impl PartialOrd for BibleReference {
 }
 
 /// The struct BibleBook contains all books of the Bible in their correct order. As it derives from `PartialOrd` and `PartialEq`, you can make comparisons like `<` or `>` to determine whether a book is before or after an other.
-#[derive(PartialEq, PartialOrd, Ord, Eq, Serialize, Deserialize, Debug, Copy, Clone, Hash)]
+#[derive(PartialEq, PartialOrd, Ord, Eq, Debug, Copy, Clone, Hash)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum BibleBook {
     Genesis,
     Exodus,
@@ -747,7 +763,8 @@ pub type BibleChapter = u8;
 pub type BibleVerse = u8;
 
 /// A Bible Book range is a range of Bible books, e.g. Genesis to Exodus. It is represented by two [BibleBook]s. The first book is the start of the range and the second book is the end of the range.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BibleBookRange {
     start: BibleBookReference,
     end: BibleBookReference,
@@ -812,7 +829,8 @@ impl BibleBookRange {
 }
 
 /// A Bible Chapter range is a range of Bible chapters, e.g. Genesis 1 to Genesis 2. It is represented by two [BibleChapterReference]s. The first chapter is the start of the range and the second chapter is the end of the range.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BibleChapterRange {
     start: BibleChapterReference,
     end: BibleChapterReference,
@@ -888,7 +906,8 @@ impl BibleChapterRange {
 }
 
 /// A Bible Verse range is a range of Bible verses, e.g. Genesis 1:1 to Genesis 1:2. It is represented by two [BibleVerseReference]s. The first verse is the start of the range and the second verse is the end of the range.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BibleVerseRange {
     start: BibleVerseReference,
     end: BibleVerseReference,
@@ -970,7 +989,8 @@ impl BibleVerseRange {
 }
 
 /// This enum represents a range of Bible references. It can be a range of books, chapters or verses.
-#[derive(PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum BibleRange {
     /// A range of Bible books
     BookRange(BibleBookRange),

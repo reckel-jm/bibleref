@@ -2,6 +2,9 @@
 
 use std::error::Error;
 
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
 use super::{
     errors::LanguageHasNoChapterVersDelimiterError,
     language::{BookReferenceType, REFERENCE_LANGUAGES, ReferenceLanguage},
@@ -19,6 +22,7 @@ use crate::{
 
 /// A struct representing a search result for a Bible reference.
 #[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BibleReferenceSearchResult {
     /// The valid Bible reference.
     bible_reference: BibleReference,
@@ -74,6 +78,8 @@ impl BibleReferenceSearchResult {
 }
 
 /// A struct representing a search result for a Bible reference.
+#[derive(Debug, Clone, Eq, PartialEq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BibleReferenceRepresentationSearchResult {
     /// The valid Bible reference.
     bible_reference_representation: BibleReferenceRepresentation,
