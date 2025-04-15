@@ -31,14 +31,14 @@ fn upcast_chapters() {
                 "Upcasted: {} to {}",
                 get_reference_representation_in_language(
                     &verse_range_representation,
-                    "en",
+                    "de",
                     BookReferenceType::Long,
                     true
                 )
                 .unwrap(),
                 get_reference_representation_in_language(
                     &upcasted,
-                    "en",
+                    "de",
                     BookReferenceType::Long,
                     true
                 )

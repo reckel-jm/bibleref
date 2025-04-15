@@ -4,39 +4,66 @@
 //! May it be used for the glory of God!
 //!
 //! # Features
-//! - Provides internal structures for Bible references, books, chapters and verses
-//! - Parses Bible references in and from various languages
-//! - Translates Bible references into various languages
+//! - Provides internal structures for Bible reference representations (single and ranging) consisting of books, chapters and/or verses
+//! - Parses Bible references from real world languages
+//! - Translates internal Bible references into real world languages
+//! - Translates Bible references from one language to another
 //! - Validates Bible references
 //! - Gets the number of chapters and verses of a Bible book
+//! - Upcast/downcast Bible references to/from different types
+//! - Iterating over Bible references (e.g all books of the Bible, all chapters of a book, all verses of a chapter)
 //!
 //! # Examples
 //! ## Does Genesis 4:5 exist?
+//! 
 //! ```
 //! // Genesis 4:5 exists and is a valid Bible reference (of type BibleVerse)
 //! assert!(bibleref::parse("Genesis 4:5").is_ok());
 //! ```
 //!
 //! ## How about 出埃及记2:3 (Exodus 2:3 in Chinese)?
-//!  ```
+//! 
+//! ```
 //! // 出埃及记2:3 exists and is a valid Bible reference (of type BibleVerse)
 //! assert!(bibleref::parse("出埃及记2:3").is_ok());
 //! ```
 //!
-//! ## Translate John 3:16 into German
+//! ## Translate "John 3:16-18" into German
+//! 
 //! ```
-//! // The German translation of John 3:16 is "Johannes 3,16"
-//! let german_reference: String = bibleref::translate("John 3:16", "de").unwrap();
-//! assert_eq!(german_reference, "Johannes 3,16");
+//! // The German translation of John 3:16-18 is "Johannes 3,16-18"
+//! let german_reference: String = bibleref::translate("John 3:16-18", "de").unwrap();
+//! assert_eq!(german_reference, "Johannes 3,16-18");
 //! ```
 //!
 //! ## Get the number of chapters in the book of Revelation
+//! 
 //! ```
-//! # use bibleref::bible::validate::get_number_of_chapters;
-//! # use bibleref::bible::BibleBook;
+//! use bibleref::bible::validate::get_number_of_chapters;
+//! use bibleref::bible::BibleBook;
 //! // The book of Revelation has 22 chapters
 //! assert_eq!(get_number_of_chapters(&BibleBook::Revelation), 22);
 //! ```
+//! 
+//! ## Print all books of the Bible in English and German
+//! 
+//! ```
+//! use bibleref::bible::{BibleReference, BibleBook, BibleBookReference};
+//! use bibleref::referencing::language::{get_reference_in_language, BookReferenceType};
+//! BibleBook::all().iter().for_each(|book| {
+//!     println!("English: {}, German: {}", 
+//!         get_reference_in_language(
+//!             &BibleReference::BibleBook(BibleBookReference::new(*book)),
+//!             "en",
+//!             BookReferenceType::Long,
+//!         ).unwrap(),
+//!         get_reference_in_language(
+//!             &BibleReference::BibleBook(BibleBookReference::new(*book)),
+//!             "de",
+//!             BookReferenceType::Long,
+//!         ).unwrap()
+//!     );
+//! });
 
 pub mod bible;
 
