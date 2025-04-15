@@ -128,6 +128,60 @@ pub enum BibleReferenceRepresentation {
     Range(BibleRange),
 }
 
+impl BibleReferenceRepresentation {
+    /// Returns true if the representation is a single reference
+    pub fn is_single(&self) -> bool {
+        matches!(self, BibleReferenceRepresentation::Single(_))
+    }
+
+    /// Returns true if the representation is a range reference
+    pub fn is_range(&self) -> bool {
+        matches!(self, BibleReferenceRepresentation::Range(_))
+    }
+
+    pub fn try_upcast(&self) -> BibleReferenceRepresentation {
+        match self {
+            BibleReferenceRepresentation::Single(_) => self.clone(),
+            BibleReferenceRepresentation::Range(BibleRange::VerseRange(verse_range)) => {
+                match verse_range.as_single_verse() {
+                    Some(verse) => {
+                        BibleReferenceRepresentation::Single(BibleReference::BibleVerse(verse))
+                    }
+                    None => match verse_range.as_chapter_range() {
+                        Some(chapter) => {
+                            BibleReferenceRepresentation::Range(BibleRange::ChapterRange(chapter))
+                                .try_upcast()
+                        }
+                        None => self.clone(),
+                    },
+                }
+            }
+            BibleReferenceRepresentation::Range(BibleRange::ChapterRange(chapter_range)) => {
+                match chapter_range.as_single_chapter() {
+                    Some(chapter) => {
+                        BibleReferenceRepresentation::Single(BibleReference::BibleChapter(chapter))
+                    }
+                    None => match chapter_range.as_book_range() {
+                        Some(book_range) => {
+                            BibleReferenceRepresentation::Range(BibleRange::BookRange(book_range))
+                                .try_upcast()
+                        }
+                        None => self.clone(),
+                    },
+                }
+            }
+            BibleReferenceRepresentation::Range(BibleRange::BookRange(book_range)) => {
+                match book_range.as_single_book() {
+                    Some(book) => {
+                        BibleReferenceRepresentation::Single(BibleReference::BibleBook(book))
+                    }
+                    None => self.clone(),
+                }
+            }
+        }
+    }
+}
+
 impl Ord for BibleReferenceRepresentation {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
         match (self, other) {
@@ -418,6 +472,78 @@ pub enum BibleBook {
 }
 
 impl BibleBook {
+    /// Gets a [Vec] with all books of the Bible
+    pub fn all() -> Vec<Self> {
+        vec![
+            Self::Genesis,
+            Self::Exodus,
+            Self::Leviticus,
+            Self::Numbers,
+            Self::Deuteronomy,
+            Self::Joshua,
+            Self::Judges,
+            Self::Ruth,
+            Self::ISamuel,
+            Self::IISamuel,
+            Self::IKings,
+            Self::IIKings,
+            Self::IChronicles,
+            Self::IIChronicles,
+            Self::Ezra,
+            Self::Nehemiah,
+            Self::Esther,
+            Self::Job,
+            Self::Psalm,
+            Self::Proverbs,
+            Self::Ecclesiastes,
+            Self::SongofSolomon,
+            Self::Isaiah,
+            Self::Jeremiah,
+            Self::Lamentations,
+            Self::Ezekiel,
+            Self::Daniel,
+            Self::Hosea,
+            Self::Joel,
+            Self::Amos,
+            Self::Obadiah,
+            Self::Jonah,
+            Self::Micah,
+            Self::Nahum,
+            Self::Habakkuk,
+            Self::Zephaniah,
+            Self::Haggai,
+            Self::Zechariah,
+            Self::Malachi,
+            Self::Matthew,
+            Self::Mark,
+            Self::Luke,
+            Self::John,
+            Self::Acts,
+            Self::Romans,
+            Self::ICorinthians,
+            Self::IICorinthians,
+            Self::Galatians,
+            Self::Ephesians,
+            Self::Philippians,
+            Self::Colossians,
+            Self::IThessalonians,
+            Self::IIThessalonians,
+            Self::ITimothy,
+            Self::IITimothy,
+            Self::Titus,
+            Self::Philemon,
+            Self::Hebrews,
+            Self::James,
+            Self::IPeter,
+            Self::IIPeter,
+            Self::IJohn,
+            Self::IIJohn,
+            Self::IIIJohn,
+            Self::Jude,
+            Self::Revelation,
+        ]
+    }
+
     /// This function determines whether the current Bible book is part of the Old Testament.
     /// # Parameters
     /// - No parameter
@@ -664,6 +790,25 @@ impl BibleBookRange {
         }
         books
     }
+
+    /// Downcasts the [BibleBookRange] to a [BibleChapterRange]
+    /// The first chapter for the start book is assumed, and the last chapter for the end book is assumed.
+    pub fn as_chapter_range(&self) -> BibleChapterRange {
+        let start = BibleChapterReference::new(self.start.book(), 1).unwrap();
+        let end =
+            BibleChapterReference::new(self.end.book(), get_number_of_chapters(&self.end.book()))
+                .unwrap();
+        BibleChapterRange::new(start, end).unwrap()
+    }
+
+    /// Tries to convert the [BibleBookRange] to a [BibleBookReference] if it represents a single book.
+    pub fn as_single_book(&self) -> Option<BibleBookReference> {
+        if self.start.book() == self.end.book() {
+            Some(self.start.clone())
+        } else {
+            None
+        }
+    }
 }
 
 /// A Bible Chapter range is a range of Bible chapters, e.g. Genesis 1 to Genesis 2. It is represented by two [BibleChapterReference]s. The first chapter is the start of the range and the second chapter is the end of the range.
@@ -704,6 +849,41 @@ impl BibleChapterRange {
             chapters.push(BibleChapterReference::new(self.start.book(), i).unwrap());
         }
         chapters
+    }
+
+    /// Downcasts the [BibleChapterRange] to a [BibleVerseRange]
+    /// The first verse for the start chapter is assumed, and the last verse for the end chapter is assumed.
+    pub fn as_verse_range(&self) -> BibleVerseRange {
+        let start = BibleVerseReference::new(self.start.book(), self.start.chapter(), 1).unwrap();
+        let end = BibleVerseReference::new(
+            self.end.book(),
+            self.end.chapter(),
+            get_number_of_verses(&self.end.book(), &self.end.chapter()).unwrap(),
+        )
+        .unwrap();
+        BibleVerseRange::new(start, end).unwrap()
+    }
+
+    /// Tries to convert the range into a [BibleBookRange] if the range spans multiple books completely.
+    /// Returns None if the range does not span over multiple books.
+    pub fn as_book_range(&self) -> Option<BibleBookRange> {
+        if self.start.chapter() == 1 && self.end.chapter == get_number_of_chapters(&self.end.book) {
+            let start = BibleBookReference::new(self.start.book());
+            let end = BibleBookReference::new(self.end.book());
+            Some(BibleBookRange::new(start, end).unwrap())
+        } else {
+            None
+        }
+    }
+
+    /// Converts the range into a [BibleChapterReference] if the range spans a single chapter.
+    /// Returns None if the range does not span over a single chapter.
+    pub fn as_single_chapter(&self) -> Option<BibleChapterReference> {
+        if self.start.book() == self.end.book() && self.start.chapter() == self.end.chapter() {
+            Some(BibleChapterReference::new(self.start.book(), self.start.chapter()).unwrap())
+        } else {
+            None
+        }
     }
 }
 
@@ -750,6 +930,42 @@ impl BibleVerseRange {
             );
         }
         verses
+    }
+
+    /// Tries to convert the range into a [BibleChapterRange] if the range spans completely over multiple chapters.
+    /// Returns None if the range does not span over multiple chapters.
+    pub fn as_chapter_range(&self) -> Option<BibleChapterRange> {
+        if self.start.verse() == 1
+            && self.end.verse()
+                == get_number_of_verses(&self.end.book(), &self.end.chapter()).unwrap()
+        {
+            let start =
+                BibleChapterReference::new(self.start.book(), self.start.chapter()).unwrap();
+            let end = BibleChapterReference::new(self.end.book(), self.end.chapter()).unwrap();
+            Some(BibleChapterRange::new(start, end).unwrap())
+        } else {
+            None
+        }
+    }
+
+    /// Tries to convert the range into a [BibleVerseReference] if the range spans over a single verse.
+    /// Returns None if the range does not span over a single verse.
+    pub fn as_single_verse(&self) -> Option<BibleVerseReference> {
+        if self.start.book() == self.end.book()
+            && self.start.chapter() == self.end.chapter()
+            && self.start.verse() == self.end.verse()
+        {
+            Some(
+                BibleVerseReference::new(
+                    self.start.book(),
+                    self.start.chapter(),
+                    self.start.verse(),
+                )
+                .unwrap(),
+            )
+        } else {
+            None
+        }
     }
 }
 
@@ -1090,5 +1306,10 @@ mod tests {
                 BibleRange::new(bibleref1.clone(), bibleref3.clone()).unwrap()
             )
         );
+    }
+
+    #[test]
+    pub fn test_biblebooks_length() {
+        assert_eq!(BibleBook::all().len(), 66);
     }
 }
