@@ -7,7 +7,6 @@ May it be used for the glory of God!
 
 ## Features
 
-# Features
 - Provides internal structures for Bible reference representations (single and ranging) consisting of books, chapters and/or verses
 - Parses Bible references from real world languages
 - Translates internal Bible references into real world languages
