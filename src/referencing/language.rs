@@ -1,16 +1,19 @@
 //! This module contains structures and implementations for parsing to and from real world languages.
 
-use std::{collections::HashMap, sync::RwLock};
 use once_cell::sync::Lazy;
+use std::{collections::HashMap, sync::RwLock};
 
-use crate::bible::{BibleBook, BibleReference};
+#[cfg(feature = "serde")]
+use serde::{Deserialize, Serialize};
+
+use crate::bible::{BibleBook, BibleRange, BibleReference, BibleReferenceRepresentation};
 
 use super::errors::LanguageDoesNotExistError;
 
 /// A static Read-Write-Lock vector of ReferenceLanguage instances using Lazy. Here, all the languages which are supported by default are loaded and saved in.
 /// As this is inside a [RwLock], it is possible to manipulate the languages during runtime.
 /// To obtain a mutable reference to the vector, use the `write` function of the RwLock:
-/// 
+///
 /// ```ignore
 /// # use bibleref::referencing::language::REFERENCE_LANGUAGES;
 /// let mut languages = REFERENCE_LANGUAGES.write().unwrap();
@@ -27,11 +30,13 @@ pub static REFERENCE_LANGUAGES: Lazy<RwLock<Vec<ReferenceLanguage>>> = Lazy::new
         get_french_reference_language(),
         get_russian_reference_language(),
         get_ukrainian_reference_language(),
-        get_spanish_reference_language()
+        get_spanish_reference_language(),
     ])
 });
 
 /// A struct representing a human used language where Bible references can be reprsented.
+#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct ReferenceLanguage {
     /// The long name of the language (e.g. English, German, Chinese Simplified, French, etc)
     pub long_language_name: String,
@@ -47,82 +52,281 @@ pub struct ReferenceLanguage {
     pub short_names: HashMap<BibleBook, Vec<String>>,
 
     /// A list of delimiters splitting the chapter from the verse (most likely ',' or ':')
-    pub delimiter: Vec<String>,
+    pub chapter_vers_delimiters: Vec<String>,
 
     /// Determines whether a simple space should be added between the book name and the chapter. This should be activated for all left-to-right lettered languages with Latin or Cyrillian alphabet, however it should be disabled for Asian languages such as Chinese, Japanese or Korean.
     pub space_separation: bool,
+
+    /// A string indicating a range (most likely '-')
+    pub range_delimiter: String,
+
+    /// A vector of strings used as delimiter between several Bible reference representations (most likely ';')
+    pub multiple_representations_delimiters: Vec<String>,
 }
 
 impl ReferenceLanguage {
-    pub fn create_reference(&self, bible_reference: &BibleReference, book_reference_type: BookReferenceType) -> String {
+    pub fn create_reference(
+        &self,
+        bible_reference: &BibleReference,
+        book_reference_type: BookReferenceType,
+    ) -> String {
         match bible_reference {
             BibleReference::BibleBook(book) => match book_reference_type {
-                BookReferenceType::Long => self.long_names[&book.book()].first().unwrap().to_string(),
-                BookReferenceType::Short => self.short_names[&book.book()].first().unwrap().to_string(),
-            }
+                BookReferenceType::Long => {
+                    self.long_names[&book.book()].first().unwrap().to_string()
+                }
+                BookReferenceType::Short => {
+                    self.short_names[&book.book()].first().unwrap().to_string()
+                }
+            },
             BibleReference::BibleChapter(chapter) => format!(
                 "{}{}{}",
                 match book_reference_type {
-                    BookReferenceType::Long => self.long_names[&chapter.book()].first().unwrap().to_string(),
-                    BookReferenceType::Short => self.short_names[&chapter.book()].first().unwrap().to_string(),
+                    BookReferenceType::Long => self.long_names[&chapter.book()]
+                        .first()
+                        .unwrap()
+                        .to_string(),
+                    BookReferenceType::Short => self.short_names[&chapter.book()]
+                        .first()
+                        .unwrap()
+                        .to_string(),
                 },
                 match self.space_separation {
                     true => " ",
-                    false => ""
+                    false => "",
                 },
                 chapter.chapter()
             ),
             BibleReference::BibleVerse(verse) => format!(
                 "{}{}{}{}{}",
                 match book_reference_type {
-                    BookReferenceType::Long => self.long_names[&verse.book()].first().unwrap().to_string(),
-                    BookReferenceType::Short => self.short_names[&verse.book()].first().unwrap().to_string(),
+                    BookReferenceType::Long =>
+                        self.long_names[&verse.book()].first().unwrap().to_string(),
+                    BookReferenceType::Short =>
+                        self.short_names[&verse.book()].first().unwrap().to_string(),
                 },
                 match self.space_separation {
                     true => " ",
-                    false => ""
+                    false => "",
                 },
                 verse.chapter(),
-                self.delimiter.first().unwrap(),
+                self.chapter_vers_delimiters.first().unwrap(),
                 verse.verse()
-            )
+            ),
+        }
+    }
+
+    pub fn create_bible_range(
+        &self,
+        bible_range: &BibleRange,
+        book_reference_type: BookReferenceType,
+        shortened_string: bool,
+    ) -> String {
+        match shortened_string {
+            true => self.create_bible_range_shortened(bible_range, book_reference_type),
+            false => self.create_bible_range_unshortened(bible_range, book_reference_type),
+        }
+    }
+
+    fn create_bible_range_unshortened(
+        &self,
+        bible_range: &BibleRange,
+        book_reference_type: BookReferenceType,
+    ) -> String {
+        let start = self.create_reference(&bible_range.start(), book_reference_type);
+        let end = self.create_reference(&bible_range.end(), book_reference_type);
+        format!("{}{}", start, end)
+    }
+
+    fn create_bible_range_shortened(
+        &self,
+        bible_range: &BibleRange,
+        book_reference_type: BookReferenceType,
+    ) -> String {
+        match bible_range {
+            BibleRange::BookRange(book_range) => {
+                if book_range.start() == book_range.end() {
+                    self.create_reference(
+                        &BibleReference::BibleBook(book_range.start()),
+                        book_reference_type,
+                    )
+                } else {
+                    self.create_bible_range_unshortened(bible_range, book_reference_type)
+                }
+            }
+            BibleRange::ChapterRange(chapter_range) => {
+                if chapter_range.start() == chapter_range.end() {
+                    self.create_reference(
+                        &BibleReference::BibleChapter(chapter_range.start()),
+                        book_reference_type,
+                    )
+                } else if chapter_range.start().book() == chapter_range.end().book() {
+                    return format!(
+                        "{}{}{}",
+                        self.create_reference(
+                            &BibleReference::BibleChapter(chapter_range.start()),
+                            book_reference_type
+                        ),
+                        self.range_delimiter,
+                        chapter_range.end().chapter()
+                    );
+                } else {
+                    return self.create_bible_range_unshortened(bible_range, book_reference_type);
+                }
+            }
+            BibleRange::VerseRange(verse_range) => {
+                if verse_range.start() == verse_range.end() {
+                    self.create_reference(
+                        &BibleReference::BibleVerse(verse_range.start()),
+                        book_reference_type,
+                    )
+                } else if verse_range.start().book() == verse_range.end().book()
+                    && verse_range.start().chapter() == verse_range.end().chapter()
+                {
+                    return format!(
+                        "{}{}{}",
+                        self.create_reference(
+                            &BibleReference::BibleVerse(verse_range.start()),
+                            book_reference_type
+                        ),
+                        self.range_delimiter,
+                        verse_range.end().verse()
+                    );
+                } else if verse_range.start().book() == verse_range.end().book() {
+                    return format!(
+                        "{}{}{}{}{}",
+                        self.create_reference(
+                            &BibleReference::BibleVerse(verse_range.start()),
+                            book_reference_type
+                        ),
+                        self.range_delimiter,
+                        verse_range.end().chapter(),
+                        self.chapter_vers_delimiters.first().unwrap(),
+                        verse_range.end().verse()
+                    );
+                } else {
+                    return self.create_bible_range_unshortened(bible_range, book_reference_type);
+                }
+            }
         }
     }
 }
 
 /// This function creates a Bible reference in a human language.
-/// 
+///
 /// # Params
 /// - `bible_reference`: The Bible reference from which the expression should be created
 /// - `language_code`: The language code of the human language in which the reference should be created
-/// 
+///
 /// # Returns
 /// An [`Option<String>`] which is [`Some(bible_reference_string)`] if the language specified with the `language_code` exists
 /// or [None] if the language can't be found.
-pub fn get_reference_in_language(bible_reference: &BibleReference, language_code: &str, book_reference_type: BookReferenceType) -> Result<String, LanguageDoesNotExistError> {
+pub fn get_reference_in_language(
+    bible_reference: &BibleReference,
+    language_code: &str,
+    book_reference_type: BookReferenceType,
+) -> Result<String, LanguageDoesNotExistError> {
     let language_code = language_code.trim().to_lowercase();
     let reference_languages = &*REFERENCE_LANGUAGES.read().unwrap();
-    
+
     for language in reference_languages {
         if language.language_code.to_lowercase().eq(&language_code) {
-            return Ok(language.create_reference(bible_reference, book_reference_type))
+            return Ok(language.create_reference(bible_reference, book_reference_type));
         }
     }
-    Err(
-        LanguageDoesNotExistError {
-            language_code
+    Err(LanguageDoesNotExistError { language_code })
+}
+
+/// This function creates a Bible range in a human language.
+/// # Params
+/// - `bible_range`: The Bible range from which the expression should be created
+/// - `language_code`: The language code of the human language in which the range should be created
+/// - `book_reference_type`: The type of the book reference (short or long)
+/// - `shortened_string`: A boolean indicating whether the string should be shortened or not
+///
+/// # Returns
+/// An [`Option<String>`] which is [`Some(bible_range_string)`] if the language specified with the `language_code` exists
+/// or [None] if the language can't be found.
+pub fn get_range_in_language(
+    bible_range: &BibleRange,
+    language_code: &str,
+    book_reference_type: BookReferenceType,
+    shortened_string: bool,
+) -> Result<String, LanguageDoesNotExistError> {
+    let language_code = language_code.trim().to_lowercase();
+    let reference_languages = &*REFERENCE_LANGUAGES.read().unwrap();
+
+    for language in reference_languages {
+        if language.language_code.to_lowercase().eq(&language_code) {
+            return Ok(language.create_bible_range(
+                bible_range,
+                book_reference_type,
+                shortened_string,
+            ));
         }
-    )
+    }
+    Err(LanguageDoesNotExistError { language_code })
+}
+
+/// Creates a [`String`] representation of a [`BibleReferenceRepresentation`] in the specified language.
+///
+/// # Arguments
+///
+/// * `reference` - The [`BibleReferenceRepresentation`] to convert.
+/// * `language_code` - The language code to use for the conversion.
+/// * `book_reference_type` - The type of book reference to use.
+/// * `shortened_string` - Whether to use a shortened string representation.
+///
+/// # Returns
+///
+/// A [`Result`] containing a [`String`] representation of the [`BibleReferenceRepresentation`] in the specified language
+/// or a [`LanguageDoesNotExistError`] if the language does not exist.
+pub fn get_reference_representation_in_language(
+    reference: &BibleReferenceRepresentation,
+    language_code: &str,
+    book_reference_type: BookReferenceType,
+    shortened_string: bool,
+) -> Result<String, LanguageDoesNotExistError> {
+    match reference {
+        BibleReferenceRepresentation::Single(single_repr) => {
+            get_reference_in_language(single_repr, language_code, book_reference_type)
+        }
+        BibleReferenceRepresentation::Range(range_repr) => get_range_in_language(
+            range_repr,
+            language_code,
+            book_reference_type,
+            shortened_string,
+        ),
+    }
 }
 
 /// The type of a book reference in human language
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub enum BookReferenceType {
     /// Short versions like "Gen" or "Joh"
     Short,
 
     /// Long versions like "Genesis" or "John"
-    Long
+    Long,
+}
+
+/// This function returns a reference language by its language code.
+/// # Params
+/// - `language_code`: The language code of the human language
+/// # Returns
+/// An [`Option<ReferenceLanguage>`] which is [`Some(reference_language)`] if the language specified with the `language_code` exists
+/// or [None] if the language can't be found.
+pub fn get_language_by_code(language_code: &str) -> Option<ReferenceLanguage> {
+    let language_code = language_code.trim().to_lowercase();
+    let reference_languages = &*REFERENCE_LANGUAGES.read().unwrap();
+
+    for language in reference_languages {
+        if language.language_code.to_lowercase().eq(&language_code) {
+            return Some(language.clone());
+        }
+    }
+    None
 }
 
 fn get_english_reference_language() -> ReferenceLanguage {
@@ -148,7 +352,10 @@ fn get_english_reference_language() -> ReferenceLanguage {
         (BibleBook::Psalm, vec!["Psalms".to_string()]), // Commonly plural in English
         (BibleBook::Proverbs, vec!["Proverbs".to_string()]),
         (BibleBook::Ecclesiastes, vec!["Ecclesiastes".to_string()]),
-        (BibleBook::SongofSolomon, vec!["Song of Solomon".to_string()]),
+        (
+            BibleBook::SongofSolomon,
+            vec!["Song of Solomon".to_string()],
+        ),
         (BibleBook::Isaiah, vec!["Isaiah".to_string()]),
         (BibleBook::Jeremiah, vec!["Jeremiah".to_string()]),
         (BibleBook::Lamentations, vec!["Lamentations".to_string()]),
@@ -178,8 +385,14 @@ fn get_english_reference_language() -> ReferenceLanguage {
         (BibleBook::Ephesians, vec!["Ephesians".to_string()]),
         (BibleBook::Philippians, vec!["Philippians".to_string()]),
         (BibleBook::Colossians, vec!["Colossians".to_string()]),
-        (BibleBook::IThessalonians, vec!["1 Thessalonians".to_string()]),
-        (BibleBook::IIThessalonians, vec!["2 Thessalonians".to_string()]),
+        (
+            BibleBook::IThessalonians,
+            vec!["1 Thessalonians".to_string()],
+        ),
+        (
+            BibleBook::IIThessalonians,
+            vec!["2 Thessalonians".to_string()],
+        ),
         (BibleBook::ITimothy, vec!["1 Timothy".to_string()]),
         (BibleBook::IITimothy, vec!["2 Timothy".to_string()]),
         (BibleBook::Titus, vec!["Titus".to_string()]),
@@ -262,7 +475,7 @@ fn get_english_reference_language() -> ReferenceLanguage {
         (BibleBook::IIJohn, vec!["2 John".to_string()]),
         (BibleBook::IIIJohn, vec!["3 John".to_string()]),
         (BibleBook::Jude, vec!["Jude".to_string()]),
-        (BibleBook::Revelation, vec!["Rev".to_string()]), 
+        (BibleBook::Revelation, vec!["Rev".to_string()]),
     ];
     let short_names: HashMap<BibleBook, Vec<String>> = short_names_vec.into_iter().collect();
 
@@ -271,19 +484,35 @@ fn get_english_reference_language() -> ReferenceLanguage {
         language_code: "en".to_string(),
         long_names,
         short_names,
-        delimiter: vec![":".to_string()],
+        chapter_vers_delimiters: vec![":".to_string()],
         space_separation: true,
+        range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec![";".to_string(), "and".to_string()],
     }
-
 }
 
 fn get_german_reference_language() -> ReferenceLanguage {
     let long_names_vec = vec![
-        (BibleBook::Genesis, vec!["1. Mose".to_string(),"Genesis".to_string()]),
-        (BibleBook::Exodus, vec!["2. Mose".to_string(),"Exodus".to_string()]),
-        (BibleBook::Leviticus, vec!["3. Mose".to_string(),"Levitikus".to_string()]),
-        (BibleBook::Numbers, vec!["4. Mose".to_string(),"Numeri".to_string()]),
-        (BibleBook::Deuteronomy, vec!["5. Mose".to_string(),"Deuteronomium".to_string()]),
+        (
+            BibleBook::Genesis,
+            vec!["1. Mose".to_string(), "Genesis".to_string()],
+        ),
+        (
+            BibleBook::Exodus,
+            vec!["2. Mose".to_string(), "Exodus".to_string()],
+        ),
+        (
+            BibleBook::Leviticus,
+            vec!["3. Mose".to_string(), "Levitikus".to_string()],
+        ),
+        (
+            BibleBook::Numbers,
+            vec!["4. Mose".to_string(), "Numeri".to_string()],
+        ),
+        (
+            BibleBook::Deuteronomy,
+            vec!["5. Mose".to_string(), "Deuteronomium".to_string()],
+        ),
         (BibleBook::Joshua, vec!["Josua".to_string()]),
         (BibleBook::Judges, vec!["Richter".to_string()]),
         (BibleBook::Ruth, vec!["Ruth".to_string()]),
@@ -330,8 +559,14 @@ fn get_german_reference_language() -> ReferenceLanguage {
         (BibleBook::Ephesians, vec!["Epheser".to_string()]),
         (BibleBook::Philippians, vec!["Philipper".to_string()]),
         (BibleBook::Colossians, vec!["Kolosser".to_string()]),
-        (BibleBook::IThessalonians, vec!["1. Thessalonicher".to_string()]),
-        (BibleBook::IIThessalonians, vec!["2. Thessalonicher".to_string()]),
+        (
+            BibleBook::IThessalonians,
+            vec!["1. Thessalonicher".to_string()],
+        ),
+        (
+            BibleBook::IIThessalonians,
+            vec!["2. Thessalonicher".to_string()],
+        ),
         (BibleBook::ITimothy, vec!["1. Timotheus".to_string()]),
         (BibleBook::IITimothy, vec!["2. Timotheus".to_string()]),
         (BibleBook::Titus, vec!["Titus".to_string()]),
@@ -423,11 +658,12 @@ fn get_german_reference_language() -> ReferenceLanguage {
         language_code: "de".to_string(),
         long_names,
         short_names,
-        delimiter: vec![",".to_string(), ":".to_string()],
+        chapter_vers_delimiters: vec![",".to_string(), ":".to_string()],
         space_separation: true,
+        range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec![";".to_string(), "und".to_string()],
     }
 }
-
 
 fn get_chinese_simplified_reference_language() -> ReferenceLanguage {
     let long_names_vec = vec![
@@ -482,8 +718,14 @@ fn get_chinese_simplified_reference_language() -> ReferenceLanguage {
         (BibleBook::Ephesians, vec!["以弗所书".to_string()]),
         (BibleBook::Philippians, vec!["腓立比书".to_string()]),
         (BibleBook::Colossians, vec!["歌罗西书".to_string()]),
-        (BibleBook::IThessalonians, vec!["帖撒罗尼迦前书".to_string()]),
-        (BibleBook::IIThessalonians, vec!["帖撒罗尼迦后书".to_string()]),
+        (
+            BibleBook::IThessalonians,
+            vec!["帖撒罗尼迦前书".to_string()],
+        ),
+        (
+            BibleBook::IIThessalonians,
+            vec!["帖撒罗尼迦后书".to_string()],
+        ),
         (BibleBook::ITimothy, vec!["提摩太前书".to_string()]),
         (BibleBook::IITimothy, vec!["提摩太后书".to_string()]),
         (BibleBook::Titus, vec!["提多书".to_string()]),
@@ -575,11 +817,12 @@ fn get_chinese_simplified_reference_language() -> ReferenceLanguage {
         language_code: "zh_sim".to_string(),
         long_names,
         short_names,
-        delimiter: vec!["：".to_string()],
+        chapter_vers_delimiters: vec!["：".to_string()],
         space_separation: false,
+        range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec!["；".to_string(), "和".to_string()],
     }
 }
-
 
 fn get_chinese_traditional_reference_language() -> ReferenceLanguage {
     let long_names_vec = vec![
@@ -634,8 +877,14 @@ fn get_chinese_traditional_reference_language() -> ReferenceLanguage {
         (BibleBook::Ephesians, vec!["以弗所書".to_string()]),
         (BibleBook::Philippians, vec!["腓立比書".to_string()]),
         (BibleBook::Colossians, vec!["歌羅西書".to_string()]),
-        (BibleBook::IThessalonians, vec!["帖撒羅尼迦前書".to_string()]),
-        (BibleBook::IIThessalonians, vec!["帖撒羅尼迦後書".to_string()]),
+        (
+            BibleBook::IThessalonians,
+            vec!["帖撒羅尼迦前書".to_string()],
+        ),
+        (
+            BibleBook::IIThessalonians,
+            vec!["帖撒羅尼迦後書".to_string()],
+        ),
         (BibleBook::ITimothy, vec!["提摩太前書".to_string()]),
         (BibleBook::IITimothy, vec!["提摩太後書".to_string()]),
         (BibleBook::Titus, vec!["提多書".to_string()]),
@@ -727,8 +976,10 @@ fn get_chinese_traditional_reference_language() -> ReferenceLanguage {
         language_code: "zh_trad".to_string(),
         long_names,
         short_names,
-        delimiter: vec!["：".to_string()],
+        chapter_vers_delimiters: vec!["：".to_string()],
         space_separation: false,
+        range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec!["；".to_string()],
     }
 }
 
@@ -755,7 +1006,10 @@ fn get_french_reference_language() -> ReferenceLanguage {
         (BibleBook::Psalm, vec!["Psaumes".to_string()]), // Plural in French
         (BibleBook::Proverbs, vec!["Proverbes".to_string()]),
         (BibleBook::Ecclesiastes, vec!["Ecclésiaste".to_string()]),
-        (BibleBook::SongofSolomon, vec!["Cantique des Cantiques".to_string()]),
+        (
+            BibleBook::SongofSolomon,
+            vec!["Cantique des Cantiques".to_string()],
+        ),
         (BibleBook::Isaiah, vec!["Ésaïe".to_string()]),
         (BibleBook::Jeremiah, vec!["Jérémie".to_string()]),
         (BibleBook::Lamentations, vec!["Lamentations".to_string()]),
@@ -785,8 +1039,14 @@ fn get_french_reference_language() -> ReferenceLanguage {
         (BibleBook::Ephesians, vec!["Éphésiens".to_string()]),
         (BibleBook::Philippians, vec!["Philippiens".to_string()]),
         (BibleBook::Colossians, vec!["Colossiens".to_string()]),
-        (BibleBook::IThessalonians, vec!["1 Thessaloniciens".to_string()]),
-        (BibleBook::IIThessalonians, vec!["2 Thessaloniciens".to_string()]),
+        (
+            BibleBook::IThessalonians,
+            vec!["1 Thessaloniciens".to_string()],
+        ),
+        (
+            BibleBook::IIThessalonians,
+            vec!["2 Thessaloniciens".to_string()],
+        ),
         (BibleBook::ITimothy, vec!["1 Timothée".to_string()]),
         (BibleBook::IITimothy, vec!["2 Timothée".to_string()]),
         (BibleBook::Titus, vec!["Tite".to_string()]),
@@ -878,11 +1138,12 @@ fn get_french_reference_language() -> ReferenceLanguage {
         language_code: "fr".to_string(),
         long_names,
         short_names,
-        delimiter: vec![":".to_string(), ",".to_string()],
+        chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
         space_separation: true,
+        range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec![";".to_string(), "et".to_string()],
     }
 }
-
 
 pub fn get_russian_reference_language() -> ReferenceLanguage {
     let long_names_vec = vec![
@@ -937,8 +1198,14 @@ pub fn get_russian_reference_language() -> ReferenceLanguage {
         (BibleBook::Ephesians, vec!["Ефесянам".to_string()]),
         (BibleBook::Philippians, vec!["Филиппийцам".to_string()]),
         (BibleBook::Colossians, vec!["Колоссянам".to_string()]),
-        (BibleBook::IThessalonians, vec!["1 Фессалоникийцам".to_string()]),
-        (BibleBook::IIThessalonians, vec!["2 Фессалоникийцам".to_string()]),
+        (
+            BibleBook::IThessalonians,
+            vec!["1 Фессалоникийцам".to_string()],
+        ),
+        (
+            BibleBook::IIThessalonians,
+            vec!["2 Фессалоникийцам".to_string()],
+        ),
         (BibleBook::ITimothy, vec!["1 Тимофею".to_string()]),
         (BibleBook::IITimothy, vec!["2 Тимофею".to_string()]),
         (BibleBook::Titus, vec!["Титу".to_string()]),
@@ -1030,8 +1297,10 @@ pub fn get_russian_reference_language() -> ReferenceLanguage {
         language_code: "ru".to_string(),
         long_names,
         short_names,
-        delimiter: vec![":".to_string(), ",".to_string()],
+        chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
         space_separation: true,
+        range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec![";".to_string(), "и".to_string()],
     }
 }
 
@@ -1041,7 +1310,10 @@ pub fn get_ukrainian_reference_language() -> ReferenceLanguage {
         (BibleBook::Exodus, vec!["Вихід".to_string()]),
         (BibleBook::Leviticus, vec!["Левит".to_string()]),
         (BibleBook::Numbers, vec!["Числа".to_string()]),
-        (BibleBook::Deuteronomy, vec!["Повторення Закону".to_string()]),
+        (
+            BibleBook::Deuteronomy,
+            vec!["Повторення Закону".to_string()],
+        ),
         (BibleBook::Joshua, vec!["Ісус Навин".to_string()]),
         (BibleBook::Judges, vec!["Судді".to_string()]),
         (BibleBook::Ruth, vec!["Рут".to_string()]),
@@ -1181,11 +1453,12 @@ pub fn get_ukrainian_reference_language() -> ReferenceLanguage {
         language_code: "uk".to_string(),
         long_names,
         short_names,
-        delimiter: vec![":".to_string(), ",".to_string()],
+        chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
         space_separation: true,
+        range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec![";".to_string(), "і".to_string()],
     }
 }
-
 
 pub fn get_spanish_reference_language() -> ReferenceLanguage {
     let long_names_vec = vec![
@@ -1240,8 +1513,14 @@ pub fn get_spanish_reference_language() -> ReferenceLanguage {
         (BibleBook::Ephesians, vec!["Efesios".to_string()]),
         (BibleBook::Philippians, vec!["Filipenses".to_string()]),
         (BibleBook::Colossians, vec!["Colosenses".to_string()]),
-        (BibleBook::IThessalonians, vec!["1 Tesalonicenses".to_string()]),
-        (BibleBook::IIThessalonians, vec!["2 Tesalonicenses".to_string()]),
+        (
+            BibleBook::IThessalonians,
+            vec!["1 Tesalonicenses".to_string()],
+        ),
+        (
+            BibleBook::IIThessalonians,
+            vec!["2 Tesalonicenses".to_string()],
+        ),
         (BibleBook::ITimothy, vec!["1 Timoteo".to_string()]),
         (BibleBook::IITimothy, vec!["2 Timoteo".to_string()]),
         (BibleBook::Titus, vec!["Tito".to_string()]),
@@ -1333,23 +1612,26 @@ pub fn get_spanish_reference_language() -> ReferenceLanguage {
         language_code: "es".to_string(),
         long_names,
         short_names,
-        delimiter: vec![":".to_string(), ",".to_string()],
-        space_separation: true
+        chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
+        space_separation: true,
+        range_delimiter: "-".to_string(),
+        multiple_representations_delimiters: vec![";".to_string(), "y".to_string()],
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::bible::BibleVerseReference;
+    use crate::bible::{
+        BibleChapterRange, BibleChapterReference, BibleVerseRange, BibleVerseReference,
+    };
 
     use super::*;
 
     #[test]
     fn test_references_to_human_language() {
         // Test John 3:16 in multiple languages
-        let reference1: BibleReference = BibleReference::BibleVerse(
-            BibleVerseReference::new(BibleBook::John, 3, 16).unwrap()
-        );
+        let reference1: BibleReference =
+            BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::John, 3, 16).unwrap());
         assert_eq!(
             get_reference_in_language(&reference1, "en", BookReferenceType::Long).unwrap(),
             "John 3:16".to_string(),
@@ -1366,5 +1648,67 @@ mod tests {
             get_reference_in_language(&reference1, "zh_sim", BookReferenceType::Long).unwrap(),
             "约翰福音3：16".to_string()
         )
+    }
+
+    #[test]
+    fn test_ranges_to_human_language() {
+        // Test John 3:16-18 in multiple languages
+        let bible_range: BibleRange = BibleRange::VerseRange(
+            BibleVerseRange::new(
+                BibleVerseReference::new(BibleBook::John, 3, 16).unwrap(),
+                BibleVerseReference::new(BibleBook::John, 3, 18).unwrap(),
+            )
+            .unwrap(),
+        );
+        assert_eq!(
+            get_range_in_language(&bible_range, "en", BookReferenceType::Long, true).unwrap(),
+            "John 3:16-18".to_string(),
+        );
+        assert_eq!(
+            get_range_in_language(&bible_range, "de", BookReferenceType::Long, true).unwrap(),
+            "Johannes 3,16-18".to_string()
+        );
+        assert_eq!(
+            get_range_in_language(&bible_range, "de", BookReferenceType::Short, true).unwrap(),
+            "Joh 3,16-18".to_string()
+        );
+
+        // Test Josua 3-7 in multiple languages
+        let bible_range: BibleRange = BibleRange::ChapterRange(
+            BibleChapterRange::new(
+                BibleChapterReference::new(BibleBook::Joshua, 3).unwrap(),
+                BibleChapterReference::new(BibleBook::Joshua, 7).unwrap(),
+            )
+            .unwrap(),
+        );
+        assert_eq!(
+            get_range_in_language(&bible_range, "en", BookReferenceType::Long, true).unwrap(),
+            "Joshua 3-7".to_string(),
+        );
+        assert_eq!(
+            get_range_in_language(&bible_range, "de", BookReferenceType::Long, true).unwrap(),
+            "Josua 3-7".to_string()
+        );
+
+        // Test Matthew 1:1-2:12 in multiple languages
+        let bible_range: BibleRange = BibleRange::VerseRange(
+            BibleVerseRange::new(
+                BibleVerseReference::new(BibleBook::Matthew, 1, 1).unwrap(),
+                BibleVerseReference::new(BibleBook::Matthew, 2, 12).unwrap(),
+            )
+            .unwrap(),
+        );
+        assert_eq!(
+            get_range_in_language(&bible_range, "en", BookReferenceType::Long, true).unwrap(),
+            "Matthew 1:1-2:12".to_string(),
+        );
+        assert_eq!(
+            get_range_in_language(&bible_range, "de", BookReferenceType::Long, true).unwrap(),
+            "Matthäus 1,1-2,12".to_string()
+        );
+        assert_eq!(
+            get_range_in_language(&bible_range, "de", BookReferenceType::Short, true).unwrap(),
+            "Mt 1,1-2,12".to_string()
+        );
     }
 }

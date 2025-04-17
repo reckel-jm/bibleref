@@ -1,16 +1,21 @@
 # A Rust Crate for managing Bible references, chapters and verses
 
-Bibleref is a leightweight Rust crate which supports the management of Bible references including parsing, validity checks and output. It is designed to simplify the usage of God's infallible and Holy Word for computing purposes with the aim to simplify the spreading of the good news.
+Bibleref is a leightweight Rust crate which supports the management of Bible references including parsing, validity checks and output. It is designed to simplify the usage of God's word.
 May it be used for the glory of God!
+
+*If you like the crate, please consider giving it a star on Github!*
 
 ## Features
 
-The following features are already implemented:
-
-- Structures for referencing Bible verses
-- Validation parsing (checks whether verse really exists)
-- Export reference to human languages
-- Parse reference from human languages
+# Features
+- Provides internal structures for Bible reference representations (single and ranging) consisting of books, chapters and/or verses
+- Parses Bible references from real world languages
+- Translates internal Bible references into real world languages
+- Translates Bible references from one language to another
+- Validates Bible references
+- Gets the number of chapters and verses of a Bible book
+- Upcast/downcast Bible references to/from different types
+- Iterating over Bible references (e.g all books of the Bible, all chapters of a book, all verses of a chapter)
 
 ## Documentation
 
@@ -22,19 +27,16 @@ The crate is in itself [documented](https://docs.rs/bibleref).
 
 The translation will only take place if the language is supported and the bible reference exists (can be found in the Bible).
 ```rust
-use bibleref::translate_bible_reference;
-
-let german_reference: String = translate_bible_reference("Genesis 1:1".to_string(), "de".to_string()).unwrap();
-assert_eq!(german_reference, "1. Mose 1,1".to_string());
-let chinese_reference: String = translate_bible_reference("John 3:16".to_string(), "zh_sim".to_string()).unwrap();
-assert_eq!(chinese_reference, "约翰福音3：16".to_string());
+let german_reference: String = bibleref::translate("Genesis 1:1", "de").unwrap();
+assert_eq!(german_reference, "1. Mose 1,1");
+let chinese_reference: String = bibleref::translate("John 3:16-18", "zh_sim").unwrap();
+assert_eq!(chinese_reference, "约翰福音3：16-18");
 ```
 
 ### Check whether a Bible reference really exists
 ```rust
-use bibleref::parse_bible_reference;
-assert!(parse_bible_reference("Exodus 3".to_string()).is_ok()); // Exodus 3 exists in the Bible
-assert!(parse_bible_reference("Revelation 24".to_string()).is_err()); // Revelation 24 doesn't exist as the book only has 22 chapters
+assert!(bibleref::parse("Exodus 3").is_ok()); // Exodus 3 exists in the Bible
+assert!(bibleref::parse("Revelation 24").is_err()); // Revelation 24 doesn't exist as the book only has 22 chapters
 ```
 
 ## Supported Languages

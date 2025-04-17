@@ -16,7 +16,8 @@ impl Display for BibleReferenceValidationError {
             "The Bible reference is invalid: {}",
             match self.problem {
                 BibleReferenceProblem::ChapterDoesNotExist => "The chapter does not exist",
-                BibleReferenceProblem::VerseDoesNotExist => "The verse does not exist"
+                BibleReferenceProblem::VerseDoesNotExist => "The verse does not exist",
+                BibleReferenceProblem::StartReferenceAfterEndReference => "The start reference is after the end reference",
             }
         )
     }
@@ -30,4 +31,6 @@ pub enum BibleReferenceProblem {
     ChapterDoesNotExist,
     /// Indicates that book and chapter do, but the verse does not exist.
     VerseDoesNotExist,
+    /// Indicates that a given start reference is after the end reference.
+    StartReferenceAfterEndReference,
 }
