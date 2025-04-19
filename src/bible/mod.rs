@@ -3,15 +3,15 @@
 //!
 //! # General structure
 //! There exists several *types* of Bible references:
-//! - A single Bible reference [BibleReference] can be a book, a chapter or a verse.
+//! - A single [BibleReference] can be a book, a chapter or a verse.
 //!     - A Reference to a Bible book [BibleBookReference] is defined by the concerned book only (as it is the highest layer).
 //!     - A Reference to a Bible chapter [BibleChapterReference] is defined by the concerned book *and* the chapter of the book.
 //!     - A Reference to a Bible verse [BibleVerseReference] is defined by the book, the chapter and the verse.
-//! - A range of Bible references can be a range of books, chapters or verses. A range of Bible references is represented by the [BibleRange] struct.
+//! - A [BibleRange] can be a range of books, chapters or verses. A range of Bible references is represented by the [BibleRange] struct.
 //!     - A [BibleBookRange] is a range of (complete) Bible books.
 //!     - A [BibleChapterRange] is a range of Bible chapters (which are described by the book and the chapter).
 //!     - A [BibleVerseRange] is a range of Bible verses (which are described by the book, chapter and verse).
-//! - A [BibleReferenceRepresentation] is an enum used as representation of a Bible reference which can be a single reference or a range of references. It should be used to represent a Bible reference in a more generic way and can do conversions.
+//! - A [BibleReferenceRepresentation] is an enum used as representation of a Bible reference which can be a single reference ([BibleReference]) or a range of references ([BibleRange]). It should be used to represent a Bible reference in a more generic way and can do conversions.
 //! 
 //!
 //! [BibleChapterReference]s and [BibleVerseReference]s could be invalid if the chapter and verse don't exist in the Bible book. To prevent the creation of *invalid* references, the structs must be created via the `new` functions which return an [Result<BibleChapterReference, BibleReferenceValidationError>] or a [Result<BibleVerseReference, BibleReferenceValidationError>]. If the validation fails (the reference does not exist in the Bible), the [BibleReferenceValidationError::problem] field contains detailed information about the failure.

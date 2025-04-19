@@ -20,7 +20,7 @@ use crate::{
     },
 };
 
-/// A struct representing a search result for a Bible reference.
+/// A struct representing a search result for a single [BibleReference] (not a range!).
 #[derive(Debug, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BibleReferenceSearchResult {
@@ -57,7 +57,7 @@ impl BibleReferenceSearchResult {
 
     /// Gets the valid Bible reference.
     /// # Returns
-    /// - The valid Bible reference.
+    /// - The valid [BibleReference].
     pub fn bible_reference(&self) -> &BibleReference {
         &self.bible_reference
     }
@@ -77,11 +77,11 @@ impl BibleReferenceSearchResult {
     }
 }
 
-/// A struct representing a search result for a Bible reference.
+/// A struct representing a search result for a [BibleReferenceRepresentation] (a single [BibleReference] **or** a [BibleRange]).
 #[derive(Debug, Clone, Eq, PartialEq)]
 #[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BibleReferenceRepresentationSearchResult {
-    /// The valid Bible reference.
+    /// The valid Bible reference representation (a single [BibleReference] **or** a [BibleRange]).
     bible_reference_representation: BibleReferenceRepresentation,
 
     /// The language code of the reference (e.g. 'de', 'en' etc).
@@ -95,7 +95,7 @@ impl BibleReferenceRepresentationSearchResult {
     /// Creates a new BibleReferenceRepresentationSearchResult.
     ///
     /// # Arguments
-    /// - `bible_reference_representation`: The valid Bible reference.
+    /// - `bible_reference_representation`: The valid [BibleReferenceRepresentation].
     /// - `language_code`: The language code of the reference (e.g. 'de', 'en' etc).
     /// - `reference_type`: The type of the reference (long or short).
     /// # Returns
@@ -159,7 +159,7 @@ pub fn parse_reference(
     }
 }
 
-/// Gets a (internal) Bible reference and the language code of a given human readable reference.
+/// Gets a (internal) single [BibleReference] and the language code of a given human readable reference.
 /// Returns an error if parsing fails.
 ///
 /// # Arguments

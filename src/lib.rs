@@ -69,18 +69,16 @@ pub mod bible;
 
 pub mod referencing;
 
-pub mod errors;
-
 use bible::BibleReferenceRepresentation;
 use referencing::{language::get_reference_representation_in_language, parser::parse_reference};
 use std::error::Error;
 
-/// Parses a given bible reference with all supported languages and returns an [`Result<BibleReference, Box<dyn Error>>`] depending on whether the parsing was successful.
+/// Parses a given bible reference with all supported languages and returns an [`Result<BibleReferenceRepresentation, Box<dyn Error>>`] depending on whether the parsing was successful.
 /// # Params
 /// - `bible_reference`: the given bible reference as a string
 /// # Returns
 /// A [`Result<BibleReferenceRepresentation>`] with the following possible outcomes:
-/// - [`Some<BibleReferenceRepresentation>`] if the BibleReference could be successfully parsed and is valid
+/// - [`Some<BibleReferenceRepresentation>`] if the bible reference could be successfully parsed and is valid
 /// - [`Box<dyn Error>`] if parsing failed or the Bible reference is not valid.
 ///
 /// # Example
@@ -194,7 +192,7 @@ pub fn translate_short(bible_reference: &str, target_lang_code: &str) -> Result<
     }
 }
 
-/// Translates a Bible reference in an other language as a short reference
+/// Translates a Bible reference in an other language as a long reference
 ///
 /// # Params
 /// - `bible_reference`: The Bible reference in any supported language

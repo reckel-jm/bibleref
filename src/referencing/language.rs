@@ -1145,7 +1145,7 @@ fn get_french_reference_language() -> ReferenceLanguage {
     }
 }
 
-pub fn get_russian_reference_language() -> ReferenceLanguage {
+fn get_russian_reference_language() -> ReferenceLanguage {
     let long_names_vec = vec![
         (BibleBook::Genesis, vec!["Бытие".to_string()]),
         (BibleBook::Exodus, vec!["Исход".to_string()]),
@@ -1304,7 +1304,7 @@ pub fn get_russian_reference_language() -> ReferenceLanguage {
     }
 }
 
-pub fn get_ukrainian_reference_language() -> ReferenceLanguage {
+fn get_ukrainian_reference_language() -> ReferenceLanguage {
     let long_names_vec = vec![
         (BibleBook::Genesis, vec!["Буття".to_string()]),
         (BibleBook::Exodus, vec!["Вихід".to_string()]),
@@ -1460,7 +1460,7 @@ pub fn get_ukrainian_reference_language() -> ReferenceLanguage {
     }
 }
 
-pub fn get_spanish_reference_language() -> ReferenceLanguage {
+fn get_spanish_reference_language() -> ReferenceLanguage {
     let long_names_vec = vec![
         (BibleBook::Genesis, vec!["Génesis".to_string()]),
         (BibleBook::Exodus, vec!["Éxodo".to_string()]),
