@@ -109,7 +109,7 @@ pub fn parse(bible_reference: &str) -> Result<BibleReferenceRepresentation, Box<
     }
 }
 
-/// Translates a Bible reference in an other language
+/// Translates a Bible reference in an other language while keeping its style (long or short)
 ///
 /// # Params
 /// - `bible_reference`: The Bible reference in any supported language
@@ -142,6 +142,90 @@ pub fn translate(bible_reference: &str, target_lang_code: &str) -> Result<String
                 target_lang_code,
                 *bible_reference_representation_search_result
                     .reference_type(),
+                true,
+            ) {
+                Ok(translated_reference) => Ok(translated_reference),
+                Err(err) => Err(Box::new(err)),
+            }
+        }
+        Err(boxed_error) => Err(boxed_error),
+    }
+}
+
+/// Translates a Bible reference in an other language as a short reference
+///
+/// # Params
+/// - `bible_reference`: The Bible reference in any supported language
+/// - `target_lang_code`: The language code of the target language (such as `de`, `en`, `zh_sim`)
+///
+/// # Returns
+/// A [`Result<String, Box<dyn Error>>`] with the following possible outcomes:
+/// - If the translation was successful, a String with the translated Bible reference will be returned.
+/// - If an error occurred, a [`Box<dyn Error>`] with the specific error will be returned.
+///
+/// # Example
+/// ```
+/// // The German translation of Genesis 1:1 is "1. Mose 1,1"
+/// let german_reference: String = bibleref::translate_short("Genesis 1:1", "de").unwrap();
+/// assert_eq!(german_reference, "1Mo 1,1");
+/// // The Chinese translation of John 3:16 is "约翰福音3：16"
+/// let chinese_reference: String = bibleref::translate_short("John 3:16", "zh_sim").unwrap();
+/// assert_eq!(chinese_reference, "约3：16");
+/// // The translation of a non-existing Bible reference will throw an error
+/// assert!(bibleref::translate("Exodus 72", "de").is_err());
+/// // You can also translate chapters of the Bible, the number of spaces will be ignored
+/// let german_chapter: String = bibleref::translate_short("Matthew   19", "de").unwrap();
+/// assert_eq!(german_chapter, "Mt 19");
+/// ```
+pub fn translate_short(bible_reference: &str, target_lang_code: &str) -> Result<String, Box<dyn Error>> {
+    match parse_reference(bible_reference) {
+        Ok(bible_reference_representation_search_result) => {
+            match get_reference_representation_in_language(
+                bible_reference_representation_search_result.bible_reference(),
+                target_lang_code,
+                referencing::language::BookReferenceType::Short,
+                true,
+            ) {
+                Ok(translated_reference) => Ok(translated_reference),
+                Err(err) => Err(Box::new(err)),
+            }
+        }
+        Err(boxed_error) => Err(boxed_error),
+    }
+}
+
+/// Translates a Bible reference in an other language as a short reference
+///
+/// # Params
+/// - `bible_reference`: The Bible reference in any supported language
+/// - `target_lang_code`: The language code of the target language (such as `de`, `en`, `zh_sim`)
+///
+/// # Returns
+/// A [`Result<String, Box<dyn Error>>`] with the following possible outcomes:
+/// - If the translation was successful, a String with the translated Bible reference will be returned.
+/// - If an error occurred, a [`Box<dyn Error>`] with the specific error will be returned.
+///
+/// # Example
+/// ```
+/// // The German translation of Genesis 1:1 is "1. Mose 1,1"
+/// let german_reference: String = bibleref::translate_long("Gen 1:1", "de").unwrap();
+/// assert_eq!(german_reference, "1. Mose 1,1");
+/// // The Chinese translation of John 3:16 is "约翰福音3：16"
+/// let chinese_reference: String = bibleref::translate_long("John 3:16", "zh_sim").unwrap();
+/// assert_eq!(chinese_reference, "约翰福音3：16");
+/// // The translation of a non-existing Bible reference will throw an error
+/// assert!(bibleref::translate("Exodus 72", "de").is_err());
+/// // You can also translate chapters of the Bible, the number of spaces will be ignored
+/// let german_chapter: String = bibleref::translate_long("Mt   19", "de").unwrap();
+/// assert_eq!(german_chapter, "Matthäus 19");
+/// ```
+pub fn translate_long(bible_reference: &str, target_lang_code: &str) -> Result<String, Box<dyn Error>> {
+    match parse_reference(bible_reference) {
+        Ok(bible_reference_representation_search_result) => {
+            match get_reference_representation_in_language(
+                bible_reference_representation_search_result.bible_reference(),
+                target_lang_code,
+                referencing::language::BookReferenceType::Long,
                 true,
             ) {
                 Ok(translated_reference) => Ok(translated_reference),
