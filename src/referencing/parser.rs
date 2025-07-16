@@ -352,7 +352,7 @@ pub fn parse_range_reference(
                 Ok(reference) => {
                     // We have found the first part of the range
                     let first_found_reference = reference.bible_reference().clone();
-                    let chapter_vers_delimiter = match language.chapter_vers_delimiters.first() {
+                    let chapter_verse_delimiter = match language.chapter_vers_delimiters.first() {
                         Some(delimiter) => delimiter,
                         None => {
                             return Err(Box::new(LanguageHasNoChapterVersDelimiterError {
@@ -362,7 +362,7 @@ pub fn parse_range_reference(
                     };
                     match parse_second_range_part(
                         &first_found_reference,
-                        chapter_vers_delimiter,
+                        chapter_verse_delimiter,
                         parts[1].to_string(),
                     ) {
                         Ok(second_found_reference) => {
@@ -507,7 +507,7 @@ fn find_book_in_any_language(book_name: &str) -> Option<(BibleBook, String, Book
 ///
 /// # Parameters
 ///
-/// * `book_name`: The name of the book to find.
+/// * `book_name`: The name of the book to find. This is not case-sensitive.
 /// * `language`: The language in which the book name is written.
 ///
 /// # Returns
@@ -519,22 +519,22 @@ fn find_book_in_certain_language(
     language: &ReferenceLanguage,
 ) -> Option<(BibleBook, String, BookReferenceType)> {
     for book in language.long_names.keys() {
-        let language_long_space_removed: Vec<String> = language.long_names[book]
+        let language_long_space_removed_lowercase: Vec<String> = language.long_names[book]
             .iter()
-            .map(|str| str.replace(" ", ""))
+            .map(|str| str.replace(" ", "").to_lowercase())
             .collect();
-        if language_long_space_removed.contains(&book_name.to_string()) {
+        if language_long_space_removed_lowercase.contains(&book_name.to_lowercase()) {
             return Some((
                 *book,
                 language.language_code.clone(),
                 BookReferenceType::Long,
             ));
         }
-        let language_short_space_removed: Vec<String> = language.short_names[book]
+        let language_short_space_removed_lowercase: Vec<String> = language.short_names[book]
             .iter()
-            .map(|str| str.replace(" ", ""))
+            .map(|str| str.replace(" ", "").to_lowercase())
             .collect();
-        if language_short_space_removed.contains(&book_name.to_string()) {
+        if language_short_space_removed_lowercase.contains(&book_name.to_lowercase()) {
             return Some((
                 *book,
                 language.language_code.clone(),
