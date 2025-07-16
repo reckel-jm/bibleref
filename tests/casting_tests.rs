@@ -1,12 +1,9 @@
-use bibleref::{
-    bible::{
+use bibleref::bible::{
         BibleBook, BibleBookRange, BibleBookReference, BibleChapterRange, BibleChapterReference,
         BibleRange, BibleReference, BibleReferenceRepresentation, BibleVerseRange,
         BibleVerseReference, aggregate_bible_representations,
         validate::{get_number_of_chapters, get_number_of_verses},
-    },
-    parse,
-};
+    };
 
 // ==========================================
 // 4.1 Upcasting Tests

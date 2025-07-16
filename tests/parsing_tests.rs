@@ -1,14 +1,9 @@
 use bibleref::{
     bible::{
-        BibleBook, BibleBookReference, BibleChapterReference, BibleRange, BibleReference,
-        BibleReferenceRepresentation, BibleVerseReference,
+        BibleRange, BibleReference,
+        BibleReferenceRepresentation,
     },
     parse,
-    referencing::{
-        language::BookReferenceType,
-        parser::{parse_reference, parse_single_reference},
-    },
-    translate,
 };
 
 // ==========================================

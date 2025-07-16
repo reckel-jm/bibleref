@@ -1,7 +1,6 @@
 use bibleref::{
     bible::{
-        BibleBook, BibleBookReference, BibleChapterReference, BibleRange, BibleReference,
-        BibleReferenceRepresentation, BibleVerseReference,
+        BibleBook, BibleBookReference, BibleChapterReference, BibleReference, BibleVerseReference,
         validate::{get_number_of_chapters, get_number_of_verses},
     },
     parse,

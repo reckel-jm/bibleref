@@ -1,12 +1,8 @@
-use bibleref::{
-    bible::{
-        BibleBook, BibleBookRange, BibleBookReference, BibleChapterRange, BibleChapterReference,
-        BibleRange, BibleReference, BibleReferenceRepresentation, BibleVerseRange,
+use bibleref::bible::{
+        BibleBook, BibleBookRange, BibleBookReference, BibleChapterRange, BibleChapterReference, BibleReference, BibleVerseRange,
         BibleVerseReference, get_bible_book_by_number,
         validate::{get_number_of_chapters, get_number_of_verses},
-    },
-    parse,
-};
+    };
 
 // ==========================================
 // 5.1 Book Iteration Tests
