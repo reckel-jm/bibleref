@@ -7,7 +7,6 @@ May it be used for the glory of God!
 
 ## Features
 
-# Features
 - Provides internal structures for Bible reference representations (single and ranging) consisting of books, chapters and/or verses
 - Parses Bible references from real world languages
 - Translates internal Bible references into real world languages
@@ -45,11 +44,20 @@ The following languages have built-in support at the moment. You can add additio
 
 | Language | Language Code |
 | -------- | ------------- |
-| English  | en            |
-| German   | de            |
 | Chinese (Simplified) | zh_sim |
 | Chinese (Traditional) | zh_trad |
-| Spanish | es |
-| French  | fr |
-| Ukrainian | uk |
+| Czech | cs |
+| Dutch | nl |
+| English | en |
+| French | fr |
+| German | de |
+| Hungarian | hu |
+| Indonesian | id |
+| Italian | it |
+| Japanese | ja |
+| Korean | ko |
+| Polish | pl |
 | Russian | ru |
+| Spanish | es |
+| Ukrainian | uk |
+| Vietnamese | vi |
