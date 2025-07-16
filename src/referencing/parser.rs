@@ -103,11 +103,11 @@ impl BibleReferenceRepresentationSearchResult {
 /// use bibleref::referencing::language::BookReferenceType;
 /// use bibleref::bible::{BibleBook, BibleReference, BibleVerseReference};
 /// use bibleref::bible::BibleReferenceRepresentation;
-/// 
+///
 /// // Parse a single reference
 /// let result = parse_reference("1. Mose 1,3").unwrap();
 /// assert_eq!(result.language_code(), "de");
-/// 
+///
 /// // Parse a range reference
 /// let result = parse_reference("1. Mose 1,3-5").unwrap();
 /// assert_eq!(result.language_code(), "de");

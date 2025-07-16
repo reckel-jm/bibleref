@@ -15,21 +15,21 @@
 //!
 //! # Examples
 //! ## Does Genesis 4:5 exist?
-//! 
+//!
 //! ```
 //! // Genesis 4:5 exists and is a valid Bible reference (of type BibleVerse)
 //! assert!(bibleref::parse("Genesis 4:5").is_ok());
 //! ```
 //!
 //! ## How about 出埃及记2:3 (Exodus 2:3 in Chinese)?
-//! 
+//!
 //! ```
 //! // 出埃及记2:3 exists and is a valid Bible reference (of type BibleVerse)
 //! assert!(bibleref::parse("出埃及记2:3").is_ok());
 //! ```
 //!
 //! ## Translate "John 3:16-18" into German
-//! 
+//!
 //! ```
 //! // The German translation of John 3:16-18 is "Johannes 3,16-18"
 //! let german_reference: String = bibleref::translate("John 3:16-18", "de").unwrap();
@@ -37,21 +37,21 @@
 //! ```
 //!
 //! ## Get the number of chapters in the book of Revelation
-//! 
+//!
 //! ```
 //! use bibleref::bible::validate::get_number_of_chapters;
 //! use bibleref::bible::BibleBook;
 //! // The book of Revelation has 22 chapters
 //! assert_eq!(get_number_of_chapters(&BibleBook::Revelation), 22);
 //! ```
-//! 
+//!
 //! ## Print all books of the Bible in English and German
-//! 
+//!
 //! ```
 //! use bibleref::bible::{BibleReference, BibleBook, BibleBookReference};
 //! use bibleref::referencing::language::{get_reference_in_language, BookReferenceType};
 //! BibleBook::all().iter().for_each(|book| {
-//!     println!("English: {}, German: {}", 
+//!     println!("English: {}, German: {}",
 //!         get_reference_in_language(
 //!             &BibleReference::BibleBook(BibleBookReference::new(*book)),
 //!             "en",
@@ -140,8 +140,7 @@ pub fn translate(bible_reference: &str, target_lang_code: &str) -> Result<String
             match get_reference_representation_in_language(
                 bible_reference_representation_search_result.bible_reference(),
                 target_lang_code,
-                *bible_reference_representation_search_result
-                    .reference_type(),
+                *bible_reference_representation_search_result.reference_type(),
                 true,
             ) {
                 Ok(translated_reference) => Ok(translated_reference),

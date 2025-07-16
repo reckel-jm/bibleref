@@ -56,12 +56,12 @@ fn test_valid_chapter_references() {
 fn test_valid_verse_references() {
     // Test valid verse references for various books and chapters
     let test_cases = vec![
-        (BibleBook::Genesis, 1, 1),     // First verse of Genesis 1
-        (BibleBook::Genesis, 1, 31),    // Last verse of Genesis 1
-        (BibleBook::Psalm, 119, 1),     // First verse of Psalm 119
-        (BibleBook::Psalm, 119, 176),   // Last verse of Psalm 119
-        (BibleBook::John, 3, 16),       // John 3:16
-        (BibleBook::Romans, 8, 28),     // Romans 8:28
+        (BibleBook::Genesis, 1, 1),      // First verse of Genesis 1
+        (BibleBook::Genesis, 1, 31),     // Last verse of Genesis 1
+        (BibleBook::Psalm, 119, 1),      // First verse of Psalm 119
+        (BibleBook::Psalm, 119, 176),    // Last verse of Psalm 119
+        (BibleBook::John, 3, 16),        // John 3:16
+        (BibleBook::Romans, 8, 28),      // Romans 8:28
         (BibleBook::Revelation, 22, 21), // Last verse of the Bible
     ];
 
@@ -82,17 +82,34 @@ fn test_valid_references_parsing() {
     // Test parsing valid references in different formats
     let valid_references = vec![
         // Book references
-        "Genesis", "Exodus", "Matthew", "Revelation",
+        "Genesis",
+        "Exodus",
+        "Matthew",
+        "Revelation",
         // Chapter references
-        "Genesis 1", "Psalm 23", "John 3", "Revelation 22",
+        "Genesis 1",
+        "Psalm 23",
+        "John 3",
+        "Revelation 22",
         // Verse references
-        "Genesis 1:1", "Psalm 23:1", "John 3:16", "Revelation 22:21",
+        "Genesis 1:1",
+        "Psalm 23:1",
+        "John 3:16",
+        "Revelation 22:21",
         // Range references
-        "Genesis 1-2", "Psalm 1-3", "John 1-3",
-        "Genesis 1:1-10", "Psalm 23:1-6", "John 3:16-18",
+        "Genesis 1-2",
+        "Psalm 1-3",
+        "John 1-3",
+        "Genesis 1:1-10",
+        "Psalm 23:1-6",
+        "John 3:16-18",
         // References in other languages
-        "1. Mose 1,1", "Matthäus 5,3", "Johannes 3,16",
-        "创世记1：1", "诗篇23：1", "约翰福音3：16",
+        "1. Mose 1,1",
+        "Matthäus 5,3",
+        "Johannes 3,16",
+        "创世记1：1",
+        "诗篇23：1",
+        "约翰福音3：16",
     ];
 
     for reference in valid_references {
@@ -161,12 +178,12 @@ fn test_boundary_valid_references() {
 fn test_invalid_chapter_references() {
     // Test invalid chapter references
     let test_cases = vec![
-        (BibleBook::Genesis, 0),      // Chapter 0 doesn't exist
-        (BibleBook::Genesis, 51),     // Genesis only has 50 chapters
-        (BibleBook::Psalm, 151),      // Psalms only has 150 chapters
-        (BibleBook::Matthew, 29),     // Matthew only has 28 chapters
-        (BibleBook::Revelation, 23),  // Revelation only has 22 chapters
-        (BibleBook::Jude, 2),         // Jude only has 1 chapter
+        (BibleBook::Genesis, 0),     // Chapter 0 doesn't exist
+        (BibleBook::Genesis, 51),    // Genesis only has 50 chapters
+        (BibleBook::Psalm, 151),     // Psalms only has 150 chapters
+        (BibleBook::Matthew, 29),    // Matthew only has 28 chapters
+        (BibleBook::Revelation, 23), // Revelation only has 22 chapters
+        (BibleBook::Jude, 2),        // Jude only has 1 chapter
     ];
 
     for (book, chapter) in test_cases {
@@ -208,17 +225,31 @@ fn test_invalid_references_parsing() {
     // Test parsing invalid references
     let invalid_references = vec![
         // Invalid book
-        "GenesisX", "Exoduss", "Mattheww", "Revelations",
+        "GenesisX",
+        "Exoduss",
+        "Mattheww",
+        "Revelations",
         // Invalid chapter
-        "Genesis 51", "Psalm 151", "John 22", "Revelation 23",
+        "Genesis 51",
+        "Psalm 151",
+        "John 22",
+        "Revelation 23",
         // Invalid verse
-        "Genesis 1:32", "Psalm 23:7", "John 3:37", "Revelation 22:22",
+        "Genesis 1:32",
+        "Psalm 23:7",
+        "John 3:37",
+        "Revelation 22:22",
         // Invalid format
-        "Genesis:1", "Psalm:23", "John:3", "Revelation:22",
+        "Genesis:1",
+        "Psalm:23",
+        "John:3",
+        "Revelation:22",
         // Empty reference
         "",
         // Nonsense
-        "xyz", "123", "abc123",
+        "xyz",
+        "123",
+        "abc123",
     ];
 
     for reference in invalid_references {
@@ -248,7 +279,9 @@ fn test_invalid_range_references() {
         // Invalid end verse
         "Genesis 1:1-32",
         // Invalid format
-        "Genesis 1:-2", "Genesis 1:1-", "-Genesis 2",
+        "Genesis 1:-2",
+        "Genesis 1:1-",
+        "-Genesis 2",
     ];
 
     for range in invalid_ranges {
@@ -281,7 +314,8 @@ fn test_boundary_invalid_references() {
         );
 
         // Test chapter beyond last chapter (invalid)
-        let beyond_last_chapter = BibleChapterReference::new(book, get_number_of_chapters(&book) + 1);
+        let beyond_last_chapter =
+            BibleChapterReference::new(book, get_number_of_chapters(&book) + 1);
         assert!(
             beyond_last_chapter.is_err(),
             "Expected error for chapter beyond last chapter of {:?}, but got Ok",
@@ -299,7 +333,8 @@ fn test_boundary_invalid_references() {
         // Test verse beyond last verse (invalid)
         let last_chapter_num = get_number_of_chapters(&book);
         let last_verse_num = get_number_of_verses(&book, &last_chapter_num).unwrap();
-        let beyond_last_verse = BibleVerseReference::new(book, last_chapter_num, last_verse_num + 1);
+        let beyond_last_verse =
+            BibleVerseReference::new(book, last_chapter_num, last_verse_num + 1);
         assert!(
             beyond_last_verse.is_err(),
             "Expected error for verse beyond last verse of {:?} {}, but got Ok",
@@ -314,15 +349,25 @@ fn test_malformed_references() {
     // Test malformed references
     let malformed_references = vec![
         // Missing parts
-        "Genesis 1:", "Genesis :1", ": Genesis 1",
+        "Genesis 1:",
+        "Genesis :1",
+        ": Genesis 1",
         // Extra delimiters
-        "Genesis 1:1:1", "Genesis 1,1,1", "Genesis 1-1-1",
+        "Genesis 1:1:1",
+        "Genesis 1,1,1",
+        "Genesis 1-1-1",
         // Mixed delimiters
-        "Genesis 1:1,2", "Genesis 1,1:2", "Genesis 1:1-2-3",
+        "Genesis 1:1,2",
+        "Genesis 1,1:2",
+        "Genesis 1:1-2-3",
         // Invalid characters
-        "Genesis 1:a", "Genesis a:1", "Genesis @#$",
+        "Genesis 1:a",
+        "Genesis a:1",
+        "Genesis @#$",
         // Incomplete ranges
-        "Genesis 1-", "-Genesis 1", "Genesis 1:-",
+        "Genesis 1-",
+        "-Genesis 1",
+        "Genesis 1:-",
     ];
 
     for reference in malformed_references {

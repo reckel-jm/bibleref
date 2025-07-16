@@ -1,8 +1,8 @@
 //! This module contains data types and structures for handling lists (arrays) of Bible references, multiple verses, multiple chapters or multiple books.
 
-use super::{BibleReference, BibleBookReference, BibleChapterReference, BibleVerseReference};
+use super::{BibleBookReference, BibleChapterReference, BibleReference, BibleVerseReference};
 
-use super::validate::{get_number_of_chapters,get_number_of_verses};
+use super::validate::{get_number_of_chapters, get_number_of_verses};
 
 /// A vector of [BibleBookReference]s which can be used to represent several Bible books
 pub type BibleBookList = Vec<BibleBookReference>;
@@ -16,16 +16,13 @@ pub type BibleVerseList = Vec<BibleVerseReference>;
 /// A vector of [BibleReference]s which can be used to represent several Bible references (books, chapters and verses)
 pub type BibleReferenceList = Vec<BibleReference>;
 
-
 /// Creates a [BibleChapterList] from a given [BibleBookList]
 pub fn downcast_to_chapters(bible_books: BibleBookList) -> BibleChapterList {
     let mut bible_chapters: BibleChapterList = vec![];
 
     for book in bible_books {
         for chapter in 1..=get_number_of_chapters(&book.book()) {
-            bible_chapters.push(
-                BibleChapterReference::new(book.book(), chapter).unwrap()
-            )
+            bible_chapters.push(BibleChapterReference::new(book.book(), chapter).unwrap())
         }
     }
 
@@ -36,13 +33,11 @@ fn downcast_chapter_to_verses(bible_chapter: BibleChapterReference) -> BibleVers
     let mut bible_verses: BibleVerseList = vec![];
 
     for verse in 1..=get_number_of_verses(&bible_chapter.book(), &bible_chapter.chapter).unwrap() {
-        bible_verses.push(
-            BibleVerseReference { 
-                book: bible_chapter.book(), 
-                chapter: bible_chapter.chapter(), 
-                verse 
-            }
-        )
+        bible_verses.push(BibleVerseReference {
+            book: bible_chapter.book(),
+            chapter: bible_chapter.chapter(),
+            verse,
+        })
     }
 
     bible_verses
@@ -56,14 +51,15 @@ pub fn downcast_to_verses(bible_references: BibleReferenceList) -> BibleVerseLis
         match bible_reference {
             BibleReference::BibleVerse(verse_reference) => bible_verses.push(verse_reference),
             BibleReference::BibleChapter(chapter_reference) => {
-                bible_verses.append(
-                    &mut downcast_chapter_to_verses(chapter_reference)
-                )
-            },
+                bible_verses.append(&mut downcast_chapter_to_verses(chapter_reference))
+            }
             BibleReference::BibleBook(book_reference) => {
                 downcast_to_chapters(vec![book_reference])
                     .iter()
-                    .for_each(|chapter_reference| bible_verses.append(&mut downcast_chapter_to_verses(chapter_reference.clone())));
+                    .for_each(|chapter_reference| {
+                        bible_verses
+                            .append(&mut downcast_chapter_to_verses(chapter_reference.clone()))
+                    });
             }
         }
     }
@@ -80,17 +76,20 @@ mod tests {
     fn test_downcast_book_to_chapter() {
         let books: BibleBookList = vec![
             BibleBookReference::new(crate::bible::BibleBook::Genesis),
-            BibleBookReference::new(crate::bible::BibleBook::Revelation)
+            BibleBookReference::new(crate::bible::BibleBook::Revelation),
         ];
 
         assert_eq!(
-            downcast_to_chapters(books).len(), 72, "Genesis + Relevation should equal 72 chapters"
+            downcast_to_chapters(books).len(),
+            72,
+            "Genesis + Relevation should equal 72 chapters"
         );
     }
 
     #[test]
     fn test_downcast_chapter_to_verses() {
-        let chapter: BibleChapterReference = BibleChapterReference::new(crate::bible::BibleBook::Ephesians, 1).unwrap();
+        let chapter: BibleChapterReference =
+            BibleChapterReference::new(crate::bible::BibleBook::Ephesians, 1).unwrap();
 
         assert_eq!(
             downcast_chapter_to_verses(chapter).len(),

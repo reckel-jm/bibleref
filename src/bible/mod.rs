@@ -169,14 +169,14 @@ impl BibleReferenceRepresentation {
                         BibleReferenceRepresentation::Single(BibleReference::BibleBook(book))
                     }
                     None => match chapter_range.as_single_chapter() {
-                        Some(chapter) => {
-                            BibleReferenceRepresentation::Single(BibleReference::BibleChapter(chapter))
-                        }
+                        Some(chapter) => BibleReferenceRepresentation::Single(
+                            BibleReference::BibleChapter(chapter),
+                        ),
                         None => match chapter_range.as_book_range() {
-                            Some(book_range) => {
-                                BibleReferenceRepresentation::Range(BibleRange::BookRange(book_range))
-                                    .try_upcast()
-                            }
+                            Some(book_range) => BibleReferenceRepresentation::Range(
+                                BibleRange::BookRange(book_range),
+                            )
+                            .try_upcast(),
                             None => self.clone(),
                         },
                     },
@@ -883,7 +883,9 @@ impl BibleChapterRange {
     /// Tries to convert the range into a [BibleBookRange] if the range spans multiple books completely.
     /// Returns None if the range does not span over multiple books.
     pub fn as_book_range(&self) -> Option<BibleBookRange> {
-        if self.start.chapter() == 1 && self.end.chapter() == get_number_of_chapters(&self.end.book()) {
+        if self.start.chapter() == 1
+            && self.end.chapter() == get_number_of_chapters(&self.end.book())
+        {
             let start = BibleBookReference::new(self.start.book());
             let end = BibleBookReference::new(self.end.book());
             Some(BibleBookRange::new(start, end).unwrap())
@@ -891,13 +893,14 @@ impl BibleChapterRange {
             None
         }
     }
-    
+
     /// Tries to convert the range into a [BibleBookReference] if the range spans an entire book.
     /// Returns None if the range does not span over an entire book.
     pub fn as_book(&self) -> Option<BibleBookReference> {
-        if self.start.book() == self.end.book() && 
-           self.start.chapter() == 1 && 
-           self.end.chapter() == get_number_of_chapters(&self.end.book()) {
+        if self.start.book() == self.end.book()
+            && self.start.chapter() == 1
+            && self.end.chapter() == get_number_of_chapters(&self.end.book())
+        {
             Some(BibleBookReference::new(self.start.book()))
         } else {
             None
