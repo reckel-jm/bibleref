@@ -21,6 +21,7 @@ use crate::{
 };
 
 /// A struct representing a search result for a Bible reference.
+#[derive(Debug, Clone)]
 pub struct BibleReferenceSearchResult {
     /// The valid Bible reference.
     bible_reference: BibleReference,
@@ -30,6 +31,108 @@ pub struct BibleReferenceSearchResult {
 
     /// The type of the reference (long or short).
     reference_type: BookReferenceType,
+}
+
+/// A struct representing a search result for a Bible reference representation.
+#[derive(Debug, Clone)]
+pub struct BibleReferenceRepresentationSearchResult {
+    /// The valid Bible reference representation.
+    bible_reference_representation: BibleReferenceRepresentation,
+
+    /// The language code of the reference (e.g. 'de', 'en' etc).
+    language_code: String,
+
+    /// The type of the reference (long or short).
+    reference_type: BookReferenceType,
+}
+
+impl BibleReferenceRepresentationSearchResult {
+    /// Creates a new BibleReferenceRepresentationSearchResult.
+    ///
+    /// # Arguments
+    /// - `bible_reference_representation`: The valid Bible reference representation.
+    /// - `language_code`: The language code of the reference (e.g. 'de', 'en' etc).
+    /// - `reference_type`: The type of the reference (long or short).
+    /// # Returns
+    /// - A new BibleReferenceRepresentationSearchResult.
+    pub fn new(
+        bible_reference_representation: BibleReferenceRepresentation,
+        language_code: String,
+        reference_type: BookReferenceType,
+    ) -> Self {
+        Self {
+            bible_reference_representation,
+            language_code,
+            reference_type,
+        }
+    }
+
+    /// Gets the valid Bible reference representation.
+    /// # Returns
+    /// - The valid [BibleReferenceRepresentation].
+    pub fn bible_reference(&self) -> &BibleReferenceRepresentation {
+        &self.bible_reference_representation
+    }
+
+    /// Gets the language code in which the search query has been issued (e.g. 'de', 'en' etc).
+    /// # Returns
+    /// - The language code of the reference as a [String].
+    pub fn language_code(&self) -> &String {
+        &self.language_code
+    }
+
+    /// Gets the type of the search query reference (long or short).
+    /// # Returns
+    /// - The type of the reference as a [BookReferenceType].
+    pub fn reference_type(&self) -> &BookReferenceType {
+        &self.reference_type
+    }
+}
+
+/// Parses a Bible reference string and returns a BibleReferenceRepresentationSearchResult.
+/// This function tries to parse the input as a range reference first, and if that fails,
+/// it tries to parse it as a single reference.
+///
+/// # Arguments
+/// - `bible_reference`: A human readable Bible reference.
+/// # Returns
+/// - A result with either a [BibleReferenceRepresentationSearchResult] or a [`Box<dyn Error>`] with an appropriate error message.
+/// # Example
+/// ```
+/// use bibleref::referencing::parser::{BibleReferenceRepresentationSearchResult, parse_reference};
+/// use bibleref::referencing::language::BookReferenceType;
+/// use bibleref::bible::{BibleBook, BibleReference, BibleVerseReference};
+/// use bibleref::bible::BibleReferenceRepresentation;
+/// 
+/// // Parse a single reference
+/// let result = parse_reference("1. Mose 1,3").unwrap();
+/// assert_eq!(result.language_code(), "de");
+/// 
+/// // Parse a range reference
+/// let result = parse_reference("1. Mose 1,3-5").unwrap();
+/// assert_eq!(result.language_code(), "de");
+/// ```
+pub fn parse_reference(
+    bible_reference: &str,
+) -> Result<BibleReferenceRepresentationSearchResult, Box<dyn Error>> {
+    // Try to parse as a range reference first
+    match parse_range_reference(bible_reference.to_string()) {
+        Ok(result) => Ok(result),
+        Err(_) => {
+            // If that fails, try to parse as a single reference
+            match parse_single_reference(bible_reference.to_string()) {
+                Ok(result) => {
+                    // Convert BibleReferenceSearchResult to BibleReferenceRepresentationSearchResult
+                    Ok(BibleReferenceRepresentationSearchResult::new(
+                        BibleReferenceRepresentation::Single(result.bible_reference().clone()),
+                        result.language_code().clone(),
+                        *result.reference_type(),
+                    ))
+                }
+                Err(err) => Err(err),
+            }
+        }
+    }
 }
 
 impl BibleReferenceSearchResult {
