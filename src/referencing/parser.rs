@@ -21,8 +21,6 @@ use crate::{
 };
 
 /// A struct representing a search result for a Bible reference.
-#[derive(Debug, Clone, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
 pub struct BibleReferenceSearchResult {
     /// The valid Bible reference.
     bible_reference: BibleReference,
@@ -57,7 +55,7 @@ impl BibleReferenceSearchResult {
 
     /// Gets the valid Bible reference.
     /// # Returns
-    /// - The valid Bible reference.
+    /// - The valid [BibleReference].
     pub fn bible_reference(&self) -> &BibleReference {
         &self.bible_reference
     }
@@ -74,88 +72,6 @@ impl BibleReferenceSearchResult {
     /// - The type of the reference as a [BookReferenceType].
     pub fn reference_type(&self) -> &BookReferenceType {
         &self.reference_type
-    }
-}
-
-/// A struct representing a search result for a Bible reference.
-#[derive(Debug, Clone, Eq, PartialEq)]
-#[cfg_attr(feature = "serde", derive(Serialize, Deserialize))]
-pub struct BibleReferenceRepresentationSearchResult {
-    /// The valid Bible reference.
-    bible_reference_representation: BibleReferenceRepresentation,
-
-    /// The language code of the reference (e.g. 'de', 'en' etc).
-    language_code: String,
-
-    /// The type of the reference (long or short).
-    reference_type: BookReferenceType,
-}
-
-impl BibleReferenceRepresentationSearchResult {
-    /// Creates a new BibleReferenceRepresentationSearchResult.
-    ///
-    /// # Arguments
-    /// - `bible_reference_representation`: The valid Bible reference.
-    /// - `language_code`: The language code of the reference (e.g. 'de', 'en' etc).
-    /// - `reference_type`: The type of the reference (long or short).
-    /// # Returns
-    /// - A new BibleReferenceSearchResult.
-    pub fn new(
-        bible_reference_representation: BibleReferenceRepresentation,
-        language_code: String,
-        reference_type: BookReferenceType,
-    ) -> Self {
-        Self {
-            bible_reference_representation,
-            language_code,
-            reference_type,
-        }
-    }
-
-    /// Gets the valid Bible reference representation.
-    /// # Returns
-    /// - The valid Bible reference representation.
-    pub fn bible_reference(&self) -> &BibleReferenceRepresentation {
-        &self.bible_reference_representation
-    }
-
-    /// Gets the language code in which the search query has been issued (e.g. 'de', 'en' etc).
-    /// # Returns
-    /// - The language code of the reference as a [String].
-    pub fn language_code(&self) -> &String {
-        &self.language_code
-    }
-
-    /// Gets the type of the search query reference (long or short).
-    /// # Returns
-    /// - The type of the reference as a [BookReferenceType].
-    pub fn reference_type(&self) -> &BookReferenceType {
-        &self.reference_type
-    }
-}
-
-/// Parses a human readable Bible reference representation (a range or a single reference) and returns a [BibleReferenceRepresentationSearchResult].
-pub fn parse_reference(
-    parsed_string: &str,
-) -> Result<BibleReferenceRepresentationSearchResult, Box<dyn Error>> {
-    // First we try to parse a range
-    match parse_range_reference(parsed_string.to_string()) {
-        Ok(range_result) => Ok(range_result),
-        // If parsing a range fails, we try to parse a single reference
-        Err(range_reference_error) => match parse_single_reference(parsed_string.to_string()) {
-            Ok(single) => Ok(BibleReferenceRepresentationSearchResult::new(
-                BibleReferenceRepresentation::Single(single.bible_reference),
-                single.language_code,
-                single.reference_type,
-            )),
-            Err(single_reference_error) => {
-                match range_reference_error.downcast_ref::<BibleRangeParsingError>() {
-                    Some(BibleRangeParsingError::DelimiterNotFound) => Err(single_reference_error),
-                    Some(_) => Err(range_reference_error),
-                    None => Err(range_reference_error),
-                }
-            }
-        },
     }
 }
 
