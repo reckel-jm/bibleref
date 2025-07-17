@@ -6,6 +6,7 @@ use bibleref::{
     },
     referencing::language::{BookReferenceType, get_reference_representation_in_language},
 };
+use bibleref::bible::BibleBookReference;
 
 #[test]
 fn upcast_chapters() {
@@ -24,7 +25,7 @@ fn upcast_chapters() {
 
             let verse_range_representation = BibleReferenceRepresentation::Range(verse_range);
             let chapter_reference_representation = BibleReferenceRepresentation::Single(
-                BibleReference::BibleChapter(chapter_reference),
+                BibleReference::BibleChapter(chapter_reference.clone()),
             );
             let upcasted = verse_range_representation.try_upcast();
             println!(
@@ -44,7 +45,18 @@ fn upcast_chapters() {
                 )
                 .unwrap()
             );
-            assert_eq!(upcasted, chapter_reference_representation);
+            if get_number_of_chapters(&chapter_reference.book()) > 1 {
+                assert_eq!(upcasted, chapter_reference_representation);
+            } else {
+                // If the book has only one chapter, we assert an upcast to a BibleBookReference
+                let bible_book_representation = BibleReferenceRepresentation::Single(
+                    BibleReference::BibleBook(
+                        BibleBookReference::new(chapter_reference.book())
+                    )
+                );
+                assert_eq!(upcasted, bible_book_representation);
+            }
+            
         }
     }
 }
