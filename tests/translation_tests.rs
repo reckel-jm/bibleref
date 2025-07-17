@@ -204,8 +204,8 @@ fn test_translate_to_other_languages() {
         ("Genesis 1:1", "en", "Genesis 1:1", "cs"),
         ("John 3:16", "en", "Jan 3:16", "cs"),
         // English to Hungarian
-        ("Genesis 1:1", "en", "1 Mózes 1:1", "hu"),
-        ("John 3:16", "en", "János 3:16", "hu"),
+        ("Genesis 1:1", "en", "Teremtés könyve 1,1", "hu"),
+        ("John 3:16", "en", "János evangéliuma 3,16", "hu"),
     ];
 
     for (source_ref, source_lang, expected_ref, target_lang) in test_cases {
