@@ -13,6 +13,7 @@ use crate::{
     bible::{
         BibleBook, BibleBookReference, BibleChapterReference, BibleRange, BibleReference,
         BibleReferenceRepresentation, BibleVerseReference,
+        validate::get_number_of_chapters,
     },
     referencing::{
         errors::{BibleBookNotFoundError, BibleRangeParsingError, ReferenceIsEmptyError},
@@ -209,17 +210,20 @@ pub fn parse_single_reference(
         Verse,
     }
 
-    // We remove all spaces in the string as we don't need them
-    let binding = reference.replace(" ", "");
-    let reference = binding.trim();
+    // We'll keep the original reference with normalized whitespace for parsing
+    // but we'll still remove all spaces for book name lookup
+    let normalized_reference = reference.split_whitespace().collect::<Vec<&str>>().join(" ");
+    let reference = normalized_reference.trim();
+    let space_removed_reference = reference.replace(" ", "");
 
     let mut reference_book_str: String = "".to_string();
     let mut reference_chapter_str: String = "".to_string();
     let mut reference_verse_str: String = "".to_string();
+    let mut verse_separator_found: bool = false;
 
     let mut parser_flag: ParserFlag = ParserFlag::Book;
 
-    for (i, c) in reference.chars().enumerate() {
+    for (i, c) in space_removed_reference.chars().enumerate() {
         match parser_flag {
             ParserFlag::Book => {
                 if i == 0 {
@@ -235,6 +239,7 @@ pub fn parse_single_reference(
                 if c.is_numeric() {
                     reference_chapter_str.push(c);
                 } else {
+                    verse_separator_found = true;
                     parser_flag = ParserFlag::Verse
                 }
             }
@@ -244,6 +249,11 @@ pub fn parse_single_reference(
                 }
             }
         }
+    }
+    
+    // If a verse separator was found but no verse digits, this is a malformed reference
+    if verse_separator_found && reference_verse_str.is_empty() {
+        return Err(Box::new(ReferenceIsEmptyError));
     }
 
     let book_finding = find_book_in_any_language(&reference_book_str);
@@ -261,13 +271,28 @@ pub fn parse_single_reference(
                 )),
                 (0.., 0) => {
                     let chapter: u8 = reference_chapter_str.parse().unwrap();
-                    match BibleChapterReference::new(bible_book, chapter) {
-                        Ok(chapter_reference) => Ok(BibleReferenceSearchResult::new(
-                            BibleReference::BibleChapter(chapter_reference),
-                            language.clone(),
-                            book_reference_type,
-                        )),
-                        Err(err) => Err(Box::new(err)),
+                    
+                    // Check if this is a single-chapter book
+                    if get_number_of_chapters(&bible_book) == 1 {
+                        // For single-chapter books, interpret the "chapter" as a verse
+                        match BibleVerseReference::new(bible_book, 1, chapter) {
+                            Ok(verse_reference) => Ok(BibleReferenceSearchResult::new(
+                                BibleReference::BibleVerse(verse_reference),
+                                language.clone(),
+                                book_reference_type,
+                            )),
+                            Err(err) => Err(Box::new(err)),
+                        }
+                    } else {
+                        // For multi-chapter books, proceed as normal
+                        match BibleChapterReference::new(bible_book, chapter) {
+                            Ok(chapter_reference) => Ok(BibleReferenceSearchResult::new(
+                                BibleReference::BibleChapter(chapter_reference),
+                                language.clone(),
+                                book_reference_type,
+                            )),
+                            Err(err) => Err(Box::new(err)),
+                        }
                     }
                 }
                 (0.., 0..) => {
@@ -323,15 +348,17 @@ pub fn parse_range_reference(
         return Err(Box::new(ReferenceIsEmptyError));
     }
 
-    // We remove all spaces in the string as we don't need them
-    let binding = range_reference.replace(" ", "");
-    let reference = binding.trim();
+    // We'll keep the original reference with normalized whitespace for parsing
+    // but we'll still remove all spaces for book name lookup
+    let normalized_reference = range_reference.split_whitespace().collect::<Vec<&str>>().join(" ");
+    let reference = normalized_reference.trim();
+    let space_removed_reference = reference.replace(" ", "");
 
     // Traverse the string and try to get a reference out of it
     let mut current_part: String = "".to_string();
     let mut first_search_result_option: Option<BibleReferenceSearchResult> = None;
 
-    for c in reference.chars() {
+    for c in space_removed_reference.chars() {
         current_part.push(c);
 
         if let Ok(reference) = parse_single_reference(current_part.clone()) {
@@ -341,10 +368,25 @@ pub fn parse_range_reference(
             let language =
                 get_language_by_code(first_search_result_option.clone().unwrap().language_code())
                     .unwrap();
-            // Split the current part by the range delimiter
-            let parts: Vec<&str> = range_reference
-                .split(language.range_delimiter.as_str())
-                .collect();
+            
+            // Define common range delimiters
+            let common_delimiters = ["-", "~", "–"];
+            
+            // Try to split by any of the common delimiters
+            let mut parts: Vec<&str> = Vec::new();
+            for delimiter in common_delimiters.iter() {
+                parts = normalized_reference.split(delimiter).collect();
+                if parts.len() >= 2 {
+                    break;
+                }
+            }
+            
+            // If no common delimiter worked, try the language-specific delimiter
+            if parts.len() < 2 {
+                parts = normalized_reference
+                    .split(language.range_delimiter.as_str())
+                    .collect();
+            }
             if parts.len() < 2 {
                 return Err(Box::new(BibleRangeParsingError::DelimiterNotFound));
             }
@@ -367,14 +409,18 @@ pub fn parse_range_reference(
                     ) {
                         Ok(second_found_reference) => {
                             // We have found the second part of the range
-                            let range =
-                                BibleRange::new(first_found_reference, second_found_reference)
-                                    .unwrap();
-                            return Ok(BibleReferenceRepresentationSearchResult::new(
-                                BibleReferenceRepresentation::Range(range),
-                                reference.language_code().clone(),
-                                *reference.reference_type(),
-                            ));
+                            match BibleRange::new(first_found_reference, second_found_reference) {
+                                Ok(range) => {
+                                    return Ok(BibleReferenceRepresentationSearchResult::new(
+                                        BibleReferenceRepresentation::Range(range),
+                                        reference.language_code().clone(),
+                                        *reference.reference_type(),
+                                    ));
+                                },
+                                Err(err) => {
+                                    return Err(Box::new(err));
+                                }
+                            };
                         }
                         Err(error) => {
                             // The second part is invalid
@@ -568,6 +614,78 @@ pub mod tests {
         );
         assert_eq!(reference.language_code(), "de");
         assert_eq!(*reference.reference_type(), BookReferenceType::Short);
+    }
+
+    #[test]
+    fn test_whitespace_handling() {
+        // Test that multiple spaces are handled correctly
+        let reference = parse_single_reference("Genesis  1:3".to_string()).unwrap();
+        assert_eq!(
+            *reference.bible_reference(),
+            BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 3).unwrap())
+        );
+
+        // Test with even more spaces
+        let reference = parse_single_reference("Genesis    1:3".to_string()).unwrap();
+        assert_eq!(
+            *reference.bible_reference(),
+            BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Genesis, 1, 3).unwrap())
+        );
+
+        // Test with spaces in range references
+        let range_reference = parse_range_reference("John  3:16-18".to_string()).unwrap();
+        assert_eq!(
+            range_reference.bible_reference(),
+            &BibleReferenceRepresentation::Range(
+                BibleRange::new(
+                    BibleReference::BibleVerse(
+                        BibleVerseReference::new(BibleBook::John, 3, 16).unwrap()
+                    ),
+                    BibleReference::BibleVerse(
+                        BibleVerseReference::new(BibleBook::John, 3, 18).unwrap()
+                    )
+                )
+                .unwrap()
+            )
+        );
+    }
+
+    #[test]
+    fn test_single_chapter_books() {
+        // Test that references to single-chapter books are parsed correctly
+        let reference = parse_single_reference("Jude 4".to_string()).unwrap();
+        assert_eq!(
+            *reference.bible_reference(),
+            BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Jude, 1, 4).unwrap())
+        );
+
+        // Test Obadiah (another single-chapter book)
+        let reference = parse_single_reference("Obadiah 3".to_string()).unwrap();
+        assert_eq!(
+            *reference.bible_reference(),
+            BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Obadiah, 1, 3).unwrap())
+        );
+
+        // Test Philemon (another single-chapter book)
+        let reference = parse_single_reference("Philemon 10".to_string()).unwrap();
+        assert_eq!(
+            *reference.bible_reference(),
+            BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::Philemon, 1, 10).unwrap())
+        );
+
+        // Test 2 John (another single-chapter book)
+        let reference = parse_single_reference("2 John 7".to_string()).unwrap();
+        assert_eq!(
+            *reference.bible_reference(),
+            BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::IIJohn, 1, 7).unwrap())
+        );
+
+        // Test 3 John (another single-chapter book)
+        let reference = parse_single_reference("3 John 5".to_string()).unwrap();
+        assert_eq!(
+            *reference.bible_reference(),
+            BibleReference::BibleVerse(BibleVerseReference::new(BibleBook::IIIJohn, 1, 5).unwrap())
+        );
     }
 
     #[test]

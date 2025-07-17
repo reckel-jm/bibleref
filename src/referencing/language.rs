@@ -144,7 +144,7 @@ impl ReferenceLanguage {
     ) -> String {
         let start = self.create_reference(&bible_range.start(), book_reference_type);
         let end = self.create_reference(&bible_range.end(), book_reference_type);
-        format!("{}{}", start, end)
+        format!("{}{}{}", start, self.range_delimiter, end)
     }
 
     fn create_bible_range_shortened(
@@ -358,7 +358,7 @@ fn get_english_reference_language() -> ReferenceLanguage {
         (BibleBook::Nehemiah, vec!["Nehemiah".to_string()]),
         (BibleBook::Esther, vec!["Esther".to_string()]),
         (BibleBook::Job, vec!["Job".to_string()]),
-        (BibleBook::Psalm, vec!["Psalms".to_string()]), // Commonly plural in English
+        (BibleBook::Psalm, vec!["Psalms".to_string(), "Psalm".to_string()]), // Commonly plural in English
         (BibleBook::Proverbs, vec!["Proverbs".to_string()]),
         (BibleBook::Ecclesiastes, vec!["Ecclesiastes".to_string()]),
         (
@@ -437,7 +437,7 @@ fn get_english_reference_language() -> ReferenceLanguage {
         (BibleBook::Nehemiah, vec!["Neh".to_string()]),
         (BibleBook::Esther, vec!["Esth".to_string()]),
         (BibleBook::Job, vec!["Job".to_string()]),
-        (BibleBook::Psalm, vec!["Ps".to_string()]), // "Ps" for Psalms
+        (BibleBook::Psalm, vec!["Ps".to_string(), "Psa".to_string()]), // "Ps" for Psalms
         (BibleBook::Proverbs, vec!["Prov".to_string()]),
         (BibleBook::Ecclesiastes, vec!["Eccl".to_string()]),
         (BibleBook::SongofSolomon, vec!["Song".to_string()]),
@@ -484,7 +484,7 @@ fn get_english_reference_language() -> ReferenceLanguage {
         (BibleBook::IIJohn, vec!["2 John".to_string()]),
         (BibleBook::IIIJohn, vec!["3 John".to_string()]),
         (BibleBook::Jude, vec!["Jude".to_string()]),
-        (BibleBook::Revelation, vec!["Rev".to_string()]),
+        (BibleBook::Revelation, vec!["Rev".to_string(), "Rv".to_string()]),
     ];
     let short_names: HashMap<BibleBook, Vec<String>> = short_names_vec.into_iter().collect();
 
@@ -552,7 +552,7 @@ fn get_german_reference_language() -> ReferenceLanguage {
         (BibleBook::Micah, vec!["Micha".to_string()]),
         (BibleBook::Nahum, vec!["Nahum".to_string()]),
         (BibleBook::Habakkuk, vec!["Habakuk".to_string()]),
-        (BibleBook::Zephaniah, vec!["Zephanja".to_string()]),
+        (BibleBook::Zephaniah, vec!["Zephanja".to_string(), "Zefanja".to_string()]),
         (BibleBook::Haggai, vec!["Haggai".to_string()]),
         (BibleBook::Zechariah, vec!["Sacharja".to_string()]),
         (BibleBook::Malachi, vec!["Maleachi".to_string()]),
@@ -1798,7 +1798,7 @@ fn get_polish_reference_language() -> ReferenceLanguage {
         language_code: "pl".to_string(),
         long_names,
         short_names,
-        chapter_vers_delimiters: vec![",".to_string(), ":".to_string()],
+        chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "i".to_string()],
@@ -1960,7 +1960,7 @@ fn get_czech_reference_language() -> ReferenceLanguage {
         language_code: "cs".to_string(),
         long_names,
         short_names,
-        chapter_vers_delimiters: vec![",".to_string(), ":".to_string()],
+        chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "a".to_string()],
@@ -2281,7 +2281,7 @@ fn get_italian_reference_language() -> ReferenceLanguage {
         language_code: "it".to_string(),
         long_names,
         short_names,
-        chapter_vers_delimiters: vec![",".to_string(), ":".to_string()],
+        chapter_vers_delimiters: vec![":".to_string(), ",".to_string()],
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "e".to_string()],
