@@ -257,14 +257,14 @@ impl Ord for BibleReferenceRepresentation {
                 if let Some(first) = parts.first() {
                     first.cmp(other)
                 } else {
-                    std::cmp::Ordering::Less
+                    std::cmp::Ordering::Equal
                 }
             }
             (other, BibleReferenceRepresentation::MultiPart(parts)) => {
                 if let Some(first) = parts.first() {
                     other.cmp(first)
                 } else {
-                    std::cmp::Ordering::Greater
+                    std::cmp::Ordering::Equal
                 }
             }
         }
