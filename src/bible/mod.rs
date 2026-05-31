@@ -133,6 +133,9 @@ pub enum BibleReferenceRepresentation {
 
     /// A range of Bible references
     Range(BibleRange),
+
+    /// Multiple Bible reference representations (e.g. "Johannes 3,4.8" which references verses 4 and 8)
+    MultiPart(Vec<BibleReferenceRepresentation>),
 }
 
 impl BibleReferenceRepresentation {
@@ -144,6 +147,11 @@ impl BibleReferenceRepresentation {
     /// Returns true if the representation is a range reference
     pub fn is_range(&self) -> bool {
         matches!(self, BibleReferenceRepresentation::Range(_))
+    }
+
+    /// Returns true if the representation is a multi-part reference
+    pub fn is_multi_part(&self) -> bool {
+        matches!(self, BibleReferenceRepresentation::MultiPart(_))
     }
 
     pub fn try_upcast(&self) -> BibleReferenceRepresentation {
@@ -184,6 +192,16 @@ impl BibleReferenceRepresentation {
                     }
                     None => self.clone(),
                 }
+            }
+            BibleReferenceRepresentation::MultiPart(parts) => {
+                // Upcast each part individually
+                let upcasted_parts: Vec<BibleReferenceRepresentation> =
+                    parts.iter().map(|p| p.try_upcast()).collect();
+                // If only one part remains after dedup, return it directly
+                if upcasted_parts.len() == 1 {
+                    return upcasted_parts.into_iter().next().unwrap();
+                }
+                BibleReferenceRepresentation::MultiPart(upcasted_parts)
             }
         }
     }
@@ -229,6 +247,24 @@ impl Ord for BibleReferenceRepresentation {
                         let b_ref = BibleReference::BibleVerse(b.clone());
                         a.end().cmp(&b_ref)
                     }
+                }
+            }
+            // MultiPart comparisons: compare by first element
+            (BibleReferenceRepresentation::MultiPart(a), BibleReferenceRepresentation::MultiPart(b)) => {
+                a.cmp(b)
+            }
+            (BibleReferenceRepresentation::MultiPart(parts), other) => {
+                if let Some(first) = parts.first() {
+                    first.cmp(other)
+                } else {
+                    std::cmp::Ordering::Less
+                }
+            }
+            (other, BibleReferenceRepresentation::MultiPart(parts)) => {
+                if let Some(first) = parts.first() {
+                    other.cmp(first)
+                } else {
+                    std::cmp::Ordering::Greater
                 }
             }
         }
@@ -1197,6 +1233,8 @@ pub fn aggregate_bible_representations(
                         continue 'outer;
                     }
                 }
+                // MultiPart variants are not aggregated further
+                _ => {}
             }
         }
 

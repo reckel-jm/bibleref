@@ -111,11 +111,21 @@ impl BibleReferenceRepresentationSearchResult {
 /// // Parse a range reference
 /// let result = parse_reference("1. Mose 1,3-5").unwrap();
 /// assert_eq!(result.language_code(), "de");
+///
+/// // Parse a complex reference with multiple verses
+/// let result = parse_reference("Johannes 3,4.8").unwrap();
+/// assert!(result.bible_reference().is_multi_part());
 /// ```
 pub fn parse_reference(
     bible_reference: &str,
 ) -> Result<BibleReferenceRepresentationSearchResult, Box<dyn Error>> {
-    // Try to parse as a range reference first
+    // Try to parse as a complex reference first (with addition delimiters like '.' or '+')
+    match parse_complex_reference(bible_reference) {
+        Ok(result) => return Ok(result),
+        Err(_) => {}
+    }
+
+    // Try to parse as a range reference
     match parse_range_reference(bible_reference.to_string()) {
         Ok(result) => Ok(result),
         Err(_) => {
@@ -131,6 +141,237 @@ pub fn parse_reference(
                 }
                 Err(err) => Err(err),
             }
+        }
+    }
+}
+
+/// Parses a complex Bible reference that contains addition delimiters (like '.' or '+').
+/// For example: "Johannes 3,4.8" parses as John 3:4 and John 3:8.
+/// For example: "Hebräer 3+7" parses as Hebrews 3 and Hebrews 7.
+///
+/// # Arguments
+/// - `bible_reference`: A human readable Bible reference that may contain addition delimiters.
+/// # Returns
+/// - A result with either a [BibleReferenceRepresentationSearchResult] or a [`Box<dyn Error>`].
+pub fn parse_complex_reference(
+    bible_reference: &str,
+) -> Result<BibleReferenceRepresentationSearchResult, Box<dyn Error>> {
+    if bible_reference.is_empty() {
+        return Err(Box::new(ReferenceIsEmptyError));
+    }
+
+    let languages = &*REFERENCE_LANGUAGES.read().unwrap();
+
+    // Try each language's addition delimiters
+    for language in languages {
+        for delimiter in &language.addition_delimiters {
+            // Check if the reference contains this delimiter
+            if !bible_reference.contains(delimiter.as_str()) {
+                continue;
+            }
+
+            // Split by the addition delimiter
+            let parts: Vec<&str> = bible_reference.split(delimiter.as_str()).collect();
+            if parts.len() < 2 {
+                continue;
+            }
+
+            // The first part should be a valid single or range reference
+            let first_part_str = parts[0].trim();
+            let first_result = match parse_range_reference(first_part_str.to_string()) {
+                Ok(result) => result,
+                Err(_) => match parse_single_reference(first_part_str.to_string()) {
+                    Ok(result) => BibleReferenceRepresentationSearchResult::new(
+                        BibleReferenceRepresentation::Single(result.bible_reference().clone()),
+                        result.language_code().clone(),
+                        *result.reference_type(),
+                    ),
+                    Err(_) => continue,
+                },
+            };
+
+            // Check that this result's language matches the current language
+            if first_result.language_code() != &language.language_code {
+                continue;
+            }
+
+            let mut all_parts: Vec<BibleReferenceRepresentation> = vec![
+                first_result.bible_reference().clone(),
+            ];
+
+            let lang_code = first_result.language_code().clone();
+            let ref_type = *first_result.reference_type();
+
+            // Get the context from the first part for interpreting subsequent parts
+            let first_ref = first_result.bible_reference();
+            let context_book = get_context_book(first_ref);
+            let context_chapter = get_context_chapter(first_ref);
+
+            // Parse remaining parts using context from the first part
+            let mut all_valid = true;
+            for part_str in &parts[1..] {
+                let part_str = part_str.trim();
+                if part_str.is_empty() {
+                    all_valid = false;
+                    break;
+                }
+
+                // Try to parse the part as a range (e.g., "8-10")
+                let chapter_vers_delimiter = language.chapter_vers_delimiters.first()
+                    .cloned()
+                    .unwrap_or_else(|| ",".to_string());
+
+                if let Some(range_repr) = try_parse_addition_part_as_range(
+                    part_str,
+                    &context_book,
+                    &context_chapter,
+                    &chapter_vers_delimiter,
+                    &language.range_delimiter,
+                ) {
+                    all_parts.push(range_repr);
+                } else if let Some(repr) = try_parse_addition_part(
+                    part_str,
+                    &context_book,
+                    &context_chapter,
+                    &chapter_vers_delimiter,
+                ) {
+                    all_parts.push(repr);
+                } else {
+                    all_valid = false;
+                    break;
+                }
+            }
+
+            if all_valid && all_parts.len() >= 2 {
+                let multi = BibleReferenceRepresentation::MultiPart(all_parts);
+                return Ok(BibleReferenceRepresentationSearchResult::new(
+                    multi,
+                    lang_code,
+                    ref_type,
+                ));
+            }
+        }
+    }
+
+    Err(Box::new(BibleRangeParsingError::DelimiterNotFound))
+}
+
+/// Tries to parse an addition part (after a '.' or '+') as a range reference.
+/// For example, in "Johannes 3,4.8-10", the part "8-10" should become a verse range.
+fn try_parse_addition_part_as_range(
+    part_str: &str,
+    context_book: &Option<BibleBook>,
+    context_chapter: &Option<u8>,
+    chapter_vers_delimiter: &str,
+    range_delimiter: &str,
+) -> Option<BibleReferenceRepresentation> {
+    // Check if this part contains a range delimiter
+    if !part_str.contains(range_delimiter) {
+        return None;
+    }
+
+    let range_parts: Vec<&str> = part_str.split(range_delimiter).collect();
+    if range_parts.len() != 2 {
+        return None;
+    }
+
+    let start = try_parse_addition_part(range_parts[0].trim(), context_book, context_chapter, chapter_vers_delimiter)?;
+    let end = try_parse_addition_part(range_parts[1].trim(), context_book, context_chapter, chapter_vers_delimiter)?;
+
+    // Extract BibleReferences from the representations
+    let start_ref = match start {
+        BibleReferenceRepresentation::Single(r) => r,
+        _ => return None,
+    };
+    let end_ref = match end {
+        BibleReferenceRepresentation::Single(r) => r,
+        _ => return None,
+    };
+
+    match BibleRange::new(start_ref, end_ref) {
+        Ok(range) => Some(BibleReferenceRepresentation::Range(range)),
+        Err(_) => None,
+    }
+}
+
+/// Tries to parse an addition part (after a '.' or '+') using context from the first part.
+/// The part could be just a number (verse or chapter) or chapter,verse.
+fn try_parse_addition_part(
+    part_str: &str,
+    context_book: &Option<BibleBook>,
+    context_chapter: &Option<u8>,
+    chapter_vers_delimiter: &str,
+) -> Option<BibleReferenceRepresentation> {
+    let book = (*context_book)?;
+
+    // Check if the part contains a chapter/verse delimiter
+    if part_str.contains(chapter_vers_delimiter) {
+        let cv_parts: Vec<&str> = part_str.split(chapter_vers_delimiter).collect();
+        if cv_parts.len() == 2 {
+            let chapter: u8 = cv_parts[0].trim().parse().ok()?;
+            let verse: u8 = cv_parts[1].trim().parse().ok()?;
+            let verse_ref = BibleVerseReference::new(book, chapter, verse).ok()?;
+            return Some(BibleReferenceRepresentation::Single(
+                BibleReference::BibleVerse(verse_ref),
+            ));
+        }
+        return None;
+    }
+
+    // It's just a number - interpret based on context
+    let number: u8 = part_str.trim().parse().ok()?;
+
+    if let Some(chapter) = context_chapter {
+        // Context has a chapter, so interpret as a verse in the same chapter
+        let verse_ref = BibleVerseReference::new(book, *chapter, number).ok()?;
+        Some(BibleReferenceRepresentation::Single(
+            BibleReference::BibleVerse(verse_ref),
+        ))
+    } else {
+        // No chapter context, interpret as a chapter
+        let chapter_ref = BibleChapterReference::new(book, number).ok()?;
+        Some(BibleReferenceRepresentation::Single(
+            BibleReference::BibleChapter(chapter_ref),
+        ))
+    }
+}
+
+/// Gets the book from a BibleReferenceRepresentation context
+fn get_context_book(repr: &BibleReferenceRepresentation) -> Option<BibleBook> {
+    match repr {
+        BibleReferenceRepresentation::Single(r) => match r {
+            BibleReference::BibleBook(b) => Some(b.book()),
+            BibleReference::BibleChapter(c) => Some(c.book()),
+            BibleReference::BibleVerse(v) => Some(v.book()),
+        },
+        BibleReferenceRepresentation::Range(range) => match range {
+            BibleRange::BookRange(r) => Some(r.start().book()),
+            BibleRange::ChapterRange(r) => Some(r.start().book()),
+            BibleRange::VerseRange(r) => Some(r.start().book()),
+        },
+        BibleReferenceRepresentation::MultiPart(parts) => {
+            parts.first().and_then(|p| get_context_book(p))
+        }
+    }
+}
+
+/// Gets the chapter from a BibleReferenceRepresentation context.
+/// Only returns a chapter if the reference is at verse level (so additions are interpreted as verses).
+/// If the reference is at chapter level, returns None (so additions are interpreted as chapters).
+fn get_context_chapter(repr: &BibleReferenceRepresentation) -> Option<u8> {
+    match repr {
+        BibleReferenceRepresentation::Single(r) => match r {
+            BibleReference::BibleBook(_) => None,
+            BibleReference::BibleChapter(_) => None,
+            BibleReference::BibleVerse(v) => Some(v.chapter()),
+        },
+        BibleReferenceRepresentation::Range(range) => match range {
+            BibleRange::BookRange(_) => None,
+            BibleRange::ChapterRange(_) => None,
+            BibleRange::VerseRange(r) => Some(r.start().chapter()),
+        },
+        BibleReferenceRepresentation::MultiPart(parts) => {
+            parts.first().and_then(|p| get_context_chapter(p))
         }
     }
 }
