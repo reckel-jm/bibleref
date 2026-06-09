@@ -249,23 +249,14 @@ impl Ord for BibleReferenceRepresentation {
                     }
                 }
             }
-            // MultiPart comparisons: compare by first element
             (BibleReferenceRepresentation::MultiPart(a), BibleReferenceRepresentation::MultiPart(b)) => {
                 a.cmp(b)
             }
-            (BibleReferenceRepresentation::MultiPart(parts), other) => {
-                if let Some(first) = parts.first() {
-                    first.cmp(other)
-                } else {
-                    std::cmp::Ordering::Equal
-                }
+            (BibleReferenceRepresentation::MultiPart(_), _) => {
+                std::cmp::Ordering::Greater
             }
-            (other, BibleReferenceRepresentation::MultiPart(parts)) => {
-                if let Some(first) = parts.first() {
-                    other.cmp(first)
-                } else {
-                    std::cmp::Ordering::Equal
-                }
+            (_, BibleReferenceRepresentation::MultiPart(_)) => {
+                std::cmp::Ordering::Less
             }
         }
     }
