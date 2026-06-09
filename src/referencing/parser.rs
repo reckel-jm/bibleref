@@ -170,25 +170,49 @@ pub fn parse_complex_reference(
                 continue;
             }
 
-            // Split by the addition delimiter
-            let parts: Vec<&str> = bible_reference.split(delimiter.as_str()).collect();
-            if parts.len() < 2 {
+            // Split by the addition delimiter. Note that book names can also contain '.', e.g. "1. Mose",
+            // so we need to find the earliest prefix that parses as a reference and treat the rest as additions.
+            let raw_parts: Vec<&str> = bible_reference.split(delimiter.as_str()).collect();
+            if raw_parts.len() < 2 {
                 continue;
             }
 
-            // The first part should be a valid single or range reference
-            let first_part_str = parts[0].trim();
-            let first_result = match parse_range_reference(first_part_str.to_string()) {
-                Ok(result) => result,
-                Err(_) => match parse_single_reference(first_part_str.to_string()) {
-                    Ok(result) => BibleReferenceRepresentationSearchResult::new(
-                        BibleReferenceRepresentation::Single(result.bible_reference().clone()),
-                        result.language_code().clone(),
-                        *result.reference_type(),
-                    ),
-                    Err(_) => continue,
-                },
+            let mut first_result: Option<BibleReferenceRepresentationSearchResult> = None;
+            let mut first_part_end_idx: usize = 0;
+
+            for i in 0..raw_parts.len() - 1 {
+                let candidate = raw_parts[..=i].join(delimiter.as_str()).trim().to_string();
+
+                first_result = match parse_range_reference(candidate.clone()) {
+                    Ok(result) => Some(result),
+                    Err(_) => match parse_single_reference(candidate) {
+                        Ok(result) => Some(BibleReferenceRepresentationSearchResult::new(
+                            BibleReferenceRepresentation::Single(result.bible_reference().clone()),
+                            result.language_code().clone(),
+                            *result.reference_type(),
+                        )),
+                        Err(_) => None,
+                    },
+                };
+
+                if first_result.is_some() {
+                    first_part_end_idx = i;
+                    break;
+                }
+            }
+
+            let first_result = match first_result {
+                Some(result) => result,
+                None => continue,
             };
+
+            let mut parts: Vec<String> = Vec::with_capacity(raw_parts.len() - first_part_end_idx);
+            parts.push(raw_parts[..=first_part_end_idx].join(delimiter.as_str()));
+            parts.extend(
+                raw_parts[first_part_end_idx + 1..]
+                    .iter()
+                    .map(|s| s.to_string()),
+            );
 
             // Check that this result's language matches the current language
             if first_result.language_code() != &language.language_code {
