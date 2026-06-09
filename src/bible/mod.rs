@@ -197,7 +197,7 @@ impl BibleReferenceRepresentation {
                 // Upcast each part individually
                 let upcasted_parts: Vec<BibleReferenceRepresentation> =
                     parts.iter().map(|p| p.try_upcast()).collect();
-                // If only one part remains after dedup, return it directly
+                // If only one part remains, return it directly
                 if upcasted_parts.len() == 1 {
                     return upcasted_parts.into_iter().next().unwrap();
                 }
