@@ -71,6 +71,9 @@ pub struct ReferenceLanguage {
 
     /// A vector of strings used as delimiter between several Bible reference representations (most likely ';')
     pub multiple_representations_delimiters: Vec<String>,
+
+    /// A list of delimiters for additional verses or chapters within the same reference (most likely '.' or '+')
+    pub addition_delimiters: Vec<String>,
 }
 
 impl ReferenceLanguage {
@@ -306,6 +309,24 @@ pub fn get_reference_representation_in_language(
             book_reference_type,
             shortened_string,
         ),
+        BibleReferenceRepresentation::MultiPart(parts) => {
+            let language = get_language_by_code(language_code)
+                .ok_or(LanguageDoesNotExistError { language_code: language_code.to_string() })?;
+            let delimiter = language.addition_delimiters.first()
+                .cloned()
+                .unwrap_or_else(|| ".".to_string());
+            let mut result_parts: Vec<String> = Vec::new();
+            for part in parts {
+                let part_str = get_reference_representation_in_language(
+                    part,
+                    language_code,
+                    book_reference_type,
+                    shortened_string,
+                )?;
+                result_parts.push(part_str);
+            }
+            Ok(result_parts.join(&delimiter))
+        }
     }
 }
 
@@ -497,6 +518,7 @@ fn get_english_reference_language() -> ReferenceLanguage {
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "and".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -671,6 +693,7 @@ fn get_german_reference_language() -> ReferenceLanguage {
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "und".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -830,6 +853,7 @@ fn get_chinese_simplified_reference_language() -> ReferenceLanguage {
         space_separation: false,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec!["；".to_string(), "和".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -989,6 +1013,7 @@ fn get_chinese_traditional_reference_language() -> ReferenceLanguage {
         space_separation: false,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec!["；".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -1151,6 +1176,7 @@ fn get_french_reference_language() -> ReferenceLanguage {
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "et".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -1310,6 +1336,7 @@ pub fn get_russian_reference_language() -> ReferenceLanguage {
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "и".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -1466,6 +1493,7 @@ pub fn get_ukrainian_reference_language() -> ReferenceLanguage {
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "і".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -1625,6 +1653,7 @@ pub fn get_spanish_reference_language() -> ReferenceLanguage {
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "y".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -1778,6 +1807,7 @@ fn get_polish_reference_language() -> ReferenceLanguage {
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "i".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -1931,6 +1961,7 @@ fn get_czech_reference_language() -> ReferenceLanguage {
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "a".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -2084,6 +2115,7 @@ fn get_korean_reference_language() -> ReferenceLanguage {
         space_separation: false,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "그리고".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -2237,6 +2269,7 @@ fn get_italian_reference_language() -> ReferenceLanguage {
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "e".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -2390,6 +2423,7 @@ fn get_dutch_reference_language() -> ReferenceLanguage {
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "en".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -2543,6 +2577,7 @@ fn get_vietnamese_reference_language() -> ReferenceLanguage {
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "và".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -2696,6 +2731,7 @@ fn get_indonesian_reference_language() -> ReferenceLanguage {
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "dan".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -2849,6 +2885,7 @@ fn get_hungarian_reference_language() -> ReferenceLanguage {
         space_separation: true,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "és".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
@@ -3002,6 +3039,7 @@ fn get_japanese_reference_language() -> ReferenceLanguage {
         space_separation: false,
         range_delimiter: "-".to_string(),
         multiple_representations_delimiters: vec![";".to_string(), "と".to_string()],
+        addition_delimiters: vec![".".to_string(), "+".to_string()],
     }
 }
 
